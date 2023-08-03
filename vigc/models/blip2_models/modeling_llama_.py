@@ -27,30 +27,11 @@ from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 from transformers.activations import ACT2FN
-from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, \
-    SequenceClassifierOutputWithPast
+from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast, SequenceClassifierOutputWithPast
 from transformers.modeling_utils import PreTrainedModel
-from transformers.utils import add_start_docstrings, add_start_docstrings_to_model_forward, logging, \
-    replace_return_docstrings
+from transformers.utils import add_start_docstrings, add_start_docstrings_to_model_forward, logging, replace_return_docstrings
 from transformers.models.llama.configuration_llama import LlamaConfig
-from einops import rearrange
 
-FLASH_ATTN_FLAG = True
-try:
-    from flash_attn.flash_attn_interface import (  # pip3 install "flash-attn>=2.0"
-        flash_attn_varlen_qkvpacked_func,
-    )
-    from flash_attn.bert_padding import unpad_input, pad_input
-    cuda_major, cuda_minor = torch.cuda.get_device_capability()
-    if cuda_major < 8:
-        logging.warning(
-            "Flash attention is only supported on A100 or H100 GPU during training due to head dim > 64 backward."
-            "ref: https://github.com/HazyResearch/flash-attention/issues/190#issuecomment-1523359593"
-        )
-        FLASH_ATTN_FLAG = False
-except ImportError:
-    FLASH_ATTN_FLAG = False
-    logging.warning("You haven't installed flash attention")
 
 logger = logging.get_logger(__name__)
 
@@ -59,7 +40,7 @@ _CONFIG_FOR_DOC = "LlamaConfig"
 
 # Copied from transformers.models.bart.modeling_bart._make_causal_mask
 def _make_causal_mask(
-        input_ids_shape: torch.Size, dtype: torch.dtype, device: torch.device, past_key_values_length: int = 0
+    input_ids_shape: torch.Size, dtype: torch.dtype, device: torch.device, past_key_values_length: int = 0
 ):
     """
     Make causal mask used for bi-directional self-attention.
@@ -142,7 +123,7 @@ class LlamaRotaryEmbedding(torch.nn.Module):
 def rotate_half(x):
     """Rotates half the hidden dims of the input."""
     x1 = x[..., : x.shape[-1] // 2]
-    x2 = x[..., x.shape[-1] // 2:]
+    x2 = x[..., x.shape[-1] // 2 :]
     return torch.cat((-x2, x1), dim=-1)
 
 
@@ -158,10 +139,10 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids):
 
 class LlamaMLP(nn.Module):
     def __init__(
-            self,
-            hidden_size: int,
-            intermediate_size: int,
-            hidden_act: str,
+        self,
+        hidden_size: int,
+        intermediate_size: int,
+        hidden_act: str,
     ):
         super().__init__()
         self.gate_proj = nn.Linear(hidden_size, intermediate_size, bias=False)
@@ -198,103 +179,15 @@ class LlamaAttention(nn.Module):
     def _shape(self, tensor: torch.Tensor, seq_len: int, bsz: int):
         return tensor.view(bsz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
-    def flash_attn_forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.Tensor] = None,
-            past_key_value: Optional[Tuple[torch.Tensor]] = None,
-            output_attentions: bool = False,
-            use_cache: bool = False,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        """Input shape: Batch x Time x Channel
-
-        attention_mask: [bsz, q_len]
-        """
-        bsz, q_len, _ = hidden_states.size()
-
-        query_states = (
-            self.q_proj(hidden_states)
-                .view(bsz, q_len, self.num_heads, self.head_dim)
-                .transpose(1, 2)
-        )
-        key_states = (
-            self.k_proj(hidden_states)
-                .view(bsz, q_len, self.num_heads, self.head_dim)
-                .transpose(1, 2)
-        )
-        value_states = (
-            self.v_proj(hidden_states)
-                .view(bsz, q_len, self.num_heads, self.head_dim)
-                .transpose(1, 2)
-        )
-        # [bsz, q_len, nh, hd]
-        # [bsz, nh, q_len, hd]
-
-        kv_seq_len = key_states.shape[-2]
-        assert past_key_value is None, "past_key_value is not supported"
-
-        cos, sin = self.rotary_emb(value_states, seq_len=kv_seq_len)
-        query_states, key_states = apply_rotary_pos_emb(
-            query_states, key_states, cos, sin, position_ids
-        )
-        # [bsz, nh, t, hd]
-        assert not output_attentions, "output_attentions is not supported"
-        assert not use_cache, "use_cache is not supported"
-
-        # Flash attention codes from
-        # https://github.com/HazyResearch/flash-attention/blob/main/flash_attn/flash_attention.py
-
-        # transform the data into the format required by flash attention
-        qkv = torch.stack(
-            [query_states, key_states, value_states], dim=2
-        )  # [bsz, nh, 3, q_len, hd]
-        qkv = qkv.transpose(1, 3)  # [bsz, q_len, 3, nh, hd]
-        # We have disabled _prepare_decoder_attention_mask in LlamaModel
-        # the attention_mask should be the same as the key_padding_mask
-        key_padding_mask = attention_mask
-
-        if key_padding_mask is None:
-            qkv = rearrange(qkv, "b s ... -> (b s) ...")
-            max_s = q_len
-            cu_q_lens = torch.arange(
-                0, (bsz + 1) * q_len, step=q_len, dtype=torch.int32, device=qkv.device
-            )
-            output = flash_attn_varlen_qkvpacked_func(
-                qkv, cu_q_lens, max_s, 0.0, softmax_scale=None, causal=True
-            )
-            output = rearrange(output, "(b s) ... -> b s ...", b=bsz)
-        else:
-            nheads = qkv.shape[-2]
-            x = rearrange(qkv, "b s three h d -> b s (three h d)")
-            x_unpad, indices, cu_q_lens, max_s = unpad_input(x, key_padding_mask)
-            x_unpad = rearrange(
-                x_unpad, "nnz (three h d) -> nnz three h d", three=3, h=nheads
-            )
-            output_unpad = flash_attn_varlen_qkvpacked_func(
-                x_unpad, cu_q_lens, max_s, 0.0, softmax_scale=None, causal=True
-            )
-            output = rearrange(
-                pad_input(
-                    rearrange(output_unpad, "nnz h d -> nnz (h d)"), indices, bsz, q_len
-                ),
-                "b s (h d) -> b s h d",
-                h=nheads,
-            )
-        return self.o_proj(rearrange(output, "b s h d -> b s (h d)")), None, None
-
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_value: Optional[Tuple[torch.Tensor]] = None,
-            output_attentions: bool = False,
-            use_cache: bool = False,
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        if FLASH_ATTN_FLAG:
-            return self.flash_attn_forward(hidden_states, attention_mask, position_ids, past_key_value,
-                                           output_attentions, use_cache)
         bsz, q_len, _ = hidden_states.size()
 
         query_states = self.q_proj(hidden_states).view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
@@ -366,13 +259,13 @@ class LlamaDecoderLayer(nn.Module):
         self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_value: Optional[Tuple[torch.Tensor]] = None,
-            output_attentions: Optional[bool] = False,
-            use_cache: Optional[bool] = False,
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        output_attentions: Optional[bool] = False,
+        use_cache: Optional[bool] = False,
     ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         """
         Args:
@@ -561,8 +454,6 @@ class LlamaModel(LlamaPreTrainedModel):
 
     # Copied from transformers.models.bart.modeling_bart.BartDecoder._prepare_decoder_attention_mask
     def _prepare_decoder_attention_mask(self, attention_mask, input_shape, inputs_embeds, past_key_values_length):
-        if FLASH_ATTN_FLAG:
-            return attention_mask
         # create causal mask
         # [bsz, seq_len] -> [bsz, 1, tgt_seq_len, src_seq_len]
         combined_attention_mask = None
@@ -587,16 +478,16 @@ class LlamaModel(LlamaPreTrainedModel):
 
     @add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
@@ -745,18 +636,18 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
     @add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=CausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
-            reduction: Optional[str] = "mean",
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        reduction: Optional[str] = "mean",
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
@@ -835,7 +726,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         )
 
     def prepare_inputs_for_generation(
-            self, input_ids, past_key_values=None, attention_mask=None, inputs_embeds=None, **kwargs
+        self, input_ids, past_key_values=None, attention_mask=None, inputs_embeds=None, **kwargs
     ):
         if past_key_values:
             input_ids = input_ids[:, -1:]
@@ -907,17 +798,17 @@ class LlamaForSequenceClassification(LlamaPreTrainedModel):
 
     @add_start_docstrings_to_model_forward(LLAMA_INPUTS_DOCSTRING)
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, SequenceClassifierOutputWithPast]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

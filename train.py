@@ -40,8 +40,8 @@ def parse_args():
         "--options",
         nargs="+",
         help="override some settings in the used config, the key-value pair "
-        "in xxx=yyy format will be merged into config file (deprecate), "
-        "change to --cfg-options instead.",
+             "in xxx=yyy format will be merged into config file (deprecate), "
+             "change to --cfg-options instead.",
     )
 
     args = parser.parse_args()
@@ -81,6 +81,9 @@ def main():
     cfg = Config(parse_args())
 
     init_distributed_mode(cfg.run_cfg)
+    if cfg.run_cfg.get("use_flash_attn", False):
+        from vigc.models.blip2_models.llama_flash_attn_monkey_patch import replace_llama_attn_with_flash_attn
+        replace_llama_attn_with_flash_attn()
 
     setup_seeds(cfg)
 
