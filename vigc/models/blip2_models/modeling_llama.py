@@ -41,6 +41,7 @@ try:
         flash_attn_varlen_qkvpacked_func,
     )
     from flash_attn.bert_padding import unpad_input, pad_input
+
     cuda_major, cuda_minor = torch.cuda.get_device_capability()
     if cuda_major < 8:
         logging.warning(
@@ -292,7 +293,7 @@ class LlamaAttention(nn.Module):
             output_attentions: bool = False,
             use_cache: bool = False,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        if FLASH_ATTN_FLAG:
+        if FLASH_ATTN_FLAG and not use_cache:
             return self.flash_attn_forward(hidden_states, attention_mask, position_ids, past_key_value,
                                            output_attentions, use_cache)
         bsz, q_len, _ = hidden_states.size()
@@ -561,8 +562,6 @@ class LlamaModel(LlamaPreTrainedModel):
 
     # Copied from transformers.models.bart.modeling_bart.BartDecoder._prepare_decoder_attention_mask
     def _prepare_decoder_attention_mask(self, attention_mask, input_shape, inputs_embeds, past_key_values_length):
-        if FLASH_ATTN_FLAG:
-            return attention_mask
         # create causal mask
         # [bsz, seq_len] -> [bsz, 1, tgt_seq_len, src_seq_len]
         combined_attention_mask = None
@@ -639,9 +638,10 @@ class LlamaModel(LlamaPreTrainedModel):
             attention_mask = torch.ones(
                 (batch_size, seq_length_with_past), dtype=torch.bool, device=inputs_embeds.device
             )
-        attention_mask = self._prepare_decoder_attention_mask(
-            attention_mask, (batch_size, seq_length), inputs_embeds, past_key_values_length
-        )
+        if not (FLASH_ATTN_FLAG and (use_cache is False)):
+            attention_mask = self._prepare_decoder_attention_mask(
+                attention_mask, (batch_size, seq_length), inputs_embeds, past_key_values_length
+            )
 
         hidden_states = inputs_embeds
 

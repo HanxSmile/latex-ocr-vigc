@@ -46,7 +46,6 @@ class Blip2VicunaInstruct(Blip2Base):
             max_output_txt_len=256,
             apply_lemmatizer=False,
             qformer_text_input=True,
-            use_cache=False
     ):
         super().__init__()
         transformers_version = version.parse(transformers.__version__)
@@ -91,7 +90,7 @@ class Blip2VicunaInstruct(Blip2Base):
         self.llm_tokenizer_for_generate = LlamaTokenizer.from_pretrained(llm_model, use_fast=False,
                                                                          truncation_side="left")
         self.llm_model = LlamaForCausalLM.from_pretrained(
-            llm_model, torch_dtype=torch.float16, use_cache=use_cache
+            llm_model, torch_dtype=torch.float16
         )
         self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.llm_tokenizer.add_special_tokens({'bos_token': '</s>'})
@@ -245,6 +244,7 @@ class Blip2VicunaInstruct(Blip2Base):
                 attention_mask=attention_mask,
                 return_dict=True,
                 labels=targets,
+                use_cache=False,
             )
 
         loss = outputs.loss
@@ -363,6 +363,7 @@ class Blip2VicunaInstruct(Blip2Base):
                 repetition_penalty=repetition_penalty,
                 length_penalty=length_penalty,
                 num_return_sequences=num_captions,
+                use_cache=True
             )
 
         outputs[outputs == 0] = 2  # convert output id 0 to 2 (eos_token_id)
@@ -429,7 +430,8 @@ class Blip2VicunaInstruct(Blip2Base):
                 length_penalty=length_penalty,
                 num_return_sequences=num_beams,
                 output_scores=True,
-                return_dict_in_generate=True
+                return_dict_in_generate=True,
+                use_cache=True
             )
         outputs = raw_output.sequences
         outputs[outputs == 0] = 2  # convert output id 0 to 2 (eos_token_id)
@@ -557,6 +559,7 @@ class Blip2VicunaInstruct(Blip2Base):
                 return_dict=True,
                 labels=targets,
                 reduction="none",
+                use_cache=False
             )
 
         loss = outputs.loss.view(batch_size)
@@ -620,7 +623,6 @@ class Blip2VicunaInstruct(Blip2Base):
         apply_lemmatizer = cfg.get("apply_lemmatizer", False)
 
         qformer_text_input = cfg.get("qformer_text_input", True)
-        use_cache = cfg.get("use_cache", False)
 
         model = cls(
             vit_model=vit_model,
@@ -637,7 +639,6 @@ class Blip2VicunaInstruct(Blip2Base):
             max_output_txt_len=max_output_txt_len,
             apply_lemmatizer=apply_lemmatizer,
             qformer_text_input=qformer_text_input,
-            use_cache=use_cache
         )
 
         model.load_checkpoint_from_config(cfg)
