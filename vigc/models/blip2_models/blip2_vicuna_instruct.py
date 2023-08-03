@@ -46,6 +46,7 @@ class Blip2VicunaInstruct(Blip2Base):
             max_output_txt_len=256,
             apply_lemmatizer=False,
             qformer_text_input=True,
+            use_cache=False
     ):
         super().__init__()
         transformers_version = version.parse(transformers.__version__)
@@ -90,7 +91,7 @@ class Blip2VicunaInstruct(Blip2Base):
         self.llm_tokenizer_for_generate = LlamaTokenizer.from_pretrained(llm_model, use_fast=False,
                                                                          truncation_side="left")
         self.llm_model = LlamaForCausalLM.from_pretrained(
-            llm_model, torch_dtype=torch.float16
+            llm_model, torch_dtype=torch.float16, use_cache=use_cache
         )
         self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.llm_tokenizer.add_special_tokens({'bos_token': '</s>'})
@@ -619,6 +620,7 @@ class Blip2VicunaInstruct(Blip2Base):
         apply_lemmatizer = cfg.get("apply_lemmatizer", False)
 
         qformer_text_input = cfg.get("qformer_text_input", True)
+        use_cache = cfg.get("use_cache", False)
 
         model = cls(
             vit_model=vit_model,
@@ -635,6 +637,7 @@ class Blip2VicunaInstruct(Blip2Base):
             max_output_txt_len=max_output_txt_len,
             apply_lemmatizer=apply_lemmatizer,
             qformer_text_input=qformer_text_input,
+            use_cache=use_cache
         )
 
         model.load_checkpoint_from_config(cfg)
