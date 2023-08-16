@@ -31,7 +31,7 @@ class LlavaBaseDataset(BaseDataset):
     )
 
     def __init__(self, vis_processor, text_processor, vis_root, anno_path, task: str):
-        assert task in ("vqa", "vqg", "vqga")
+        assert task in ("vqa", "vqg", "vig")
         self.task = task
         super(LlavaBaseDataset, self).__init__(vis_processor, text_processor, vis_root, anno_path)
 
@@ -41,7 +41,7 @@ class LlavaBaseDataset(BaseDataset):
         text_output = answer
         return text_input, text_output
 
-    def get_vqga_sample(self, question, answer):
+    def get_vig_sample(self, question, answer):
         instruction = random.choice(self.VQGA_INSTRUCTIONS)
         prompt = random.choice(self.VQGA_PROMPTS).format(q=question, a=answer)
         text_input, text_output = instruction, prompt
@@ -76,8 +76,8 @@ class LlavaBaseDataset(BaseDataset):
 
         if self.task == "vqa":
             text_input, text_output = self.get_vqa_sample(question, answer)
-        elif self.task == "vqga":
-            text_input, text_output = self.get_vqga_sample(question, answer)
+        elif self.task == "vig":
+            text_input, text_output = self.get_vig_sample(question, answer)
         else:  # vqg
             text_input, text_output = self.get_vqg_sample(question, answer)
 

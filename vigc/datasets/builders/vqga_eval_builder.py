@@ -1,19 +1,19 @@
 import logging
 from vigc.common.registry import registry
 from vigc.datasets.builders.base_dataset_builder import BaseDatasetBuilder
-from vigc.datasets.datasets.vqga_eval import A_OKVQA_VQGA_EvalDataset, COCO2017_Eval_Dataset, OKVQA_VQGA_EvalDataset, \
-    VQAv2_VQGA_EvalDataset, LlavaEvalDataset, COCO2017_JiaHui_Eval_Dataset, Object365_Eval_Dataset
+from vigc.datasets.datasets.vig_eval import A_OKVQA_VIG_EvalDataset, COCO2017_Eval_Dataset, OKVQA_VIG_EvalDataset, \
+    VQAv2_VIG_EvalDataset, LlavaEvalDataset, COCO2017_JiaHui_Eval_Dataset, Object365_Eval_Dataset
 
 
-@registry.register_builder("instruct_blip_aokvqa_vqga_eval")
+@registry.register_builder("instruct_blip_aokvqa_vig_eval")
 class AOKVQAEvalBuilder(BaseDatasetBuilder):
-    eval_dataset_cls = A_OKVQA_VQGA_EvalDataset
+    eval_dataset_cls = A_OKVQA_VIG_EvalDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/a-okvqa/vqga_eval.yaml"
+        "default": "configs/datasets/a-okvqa/vig_eval.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building A-OKVQA VQGA Eval datasets ...")
+        logging.info("Building A-OKVQA VIG Eval datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -35,15 +35,15 @@ class AOKVQAEvalBuilder(BaseDatasetBuilder):
         return datasets
 
 
-@registry.register_builder("instruct_blip_jiahui_coco2017_vqga_test")
+@registry.register_builder("instruct_blip_jiahui_coco2017_vig_test")
 class COCO_Jiahui_VQGBuilder(BaseDatasetBuilder):
     eval_dataset_cls = COCO2017_JiaHui_Eval_Dataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/coco_pseudo/test_jiahui_vqga.yaml"
+        "default": "configs/datasets/coco_pseudo/test_jiahui_vig.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building COCO2017 JiaHui VQGA Test datasets ...")
+        logging.info("Building COCO2017 JiaHui VIG Test datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -65,15 +65,15 @@ class COCO_Jiahui_VQGBuilder(BaseDatasetBuilder):
         return datasets
 
 
-@registry.register_builder("instruct_blip_coco2017_vqga_test")
+@registry.register_builder("instruct_blip_coco2017_vig_test")
 class COCOPseudoEvalBuilder(BaseDatasetBuilder):
     eval_dataset_cls = COCO2017_Eval_Dataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/coco_pseudo/vqga_test.yaml"
+        "default": "configs/datasets/coco_pseudo/vig_test.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building COCO2017 VQGA Test datasets ...")
+        logging.info("Building COCO2017 VIG Test datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -99,15 +99,15 @@ class COCOPseudoEvalBuilder(BaseDatasetBuilder):
         return datasets
 
 
-@registry.register_builder("instruct_blip_object365_vqga_test")
+@registry.register_builder("instruct_blip_object365_vig_test")
 class COCOPseudoEvalBuilder(BaseDatasetBuilder):
     eval_dataset_cls = Object365_Eval_Dataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/coco_pseudo/vqga_test_object365.yaml"
+        "default": "configs/datasets/coco_pseudo/vig_test_object365.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building Object365 VQGA Test datasets ...")
+        logging.info("Building Object365 VIG Test datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -133,15 +133,15 @@ class COCOPseudoEvalBuilder(BaseDatasetBuilder):
         return datasets
 
 
-@registry.register_builder("instruct_blip_okvqa_vqga_eval")
+@registry.register_builder("instruct_blip_okvqa_vig_eval")
 class OKVQAEvalBuilder(BaseDatasetBuilder):
-    eval_dataset_cls = OKVQA_VQGA_EvalDataset
+    eval_dataset_cls = OKVQA_VIG_EvalDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/okvqa/vqga_eval.yaml"
+        "default": "configs/datasets/okvqa/vig_eval.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building OKVQA VQGA Eval datasets ...")
+        logging.info("Building OKVQA VIG Eval datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -163,15 +163,15 @@ class OKVQAEvalBuilder(BaseDatasetBuilder):
         return datasets
 
 
-@registry.register_builder("instruct_blip_vqav2_vqga_eval")
+@registry.register_builder("instruct_blip_vqav2_vig_eval")
 class VQAv2EvalBuilder(BaseDatasetBuilder):
-    eval_dataset_cls = VQAv2_VQGA_EvalDataset
+    eval_dataset_cls = VQAv2_VIG_EvalDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/vqav2/vqga_eval.yaml"
+        "default": "configs/datasets/vqav2/vig_eval.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building VQAv2 VQGA Eval datasets ...")
+        logging.info("Building VQAv2 VIG Eval datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -193,15 +193,15 @@ class VQAv2EvalBuilder(BaseDatasetBuilder):
         return datasets
 
 
-@registry.register_builder("instruct_blip_llava_vqga_eval")
+@registry.register_builder("instruct_blip_llava_vig_eval")
 class LlavaVQGAEvalBuilder(BaseDatasetBuilder):
     eval_dataset_cls = LlavaEvalDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/llava_instruct150k/vqga_eval.yaml"
+        "default": "configs/datasets/llava_instruct150k/vig_eval.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building LLava VQGA Eval datasets ...")
+        logging.info("Building LLava VIG Eval datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info

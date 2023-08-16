@@ -1,14 +1,10 @@
 model:
   arch: blip2_vicuna_instruct
   model_type: vicuna7b
-  load_pretrained: True
-
-  #  pretrained: "/mnt/petrelfs/hanxiao/input/instruct-blip/instruct_blip_vicuna7b_trimmed.pth"
   pretrained: "/mnt/petrelfs/hanxiao/input/instruct-blip/earlier_stage/20230627180/checkpoint_best.pth"
-  llm_model: "/mnt/petrelfs/hanxiao/vicuna-7b"
 
 datasets:
-  instruct_blip_jiahui_coco2017_vqga_test: # name of the dataset builder
+  instruct_blip_jiahui_coco2017_vig_test: # name of the dataset builder
     annotation: "/mnt/petrelfs/share_data/pengjiahui/test_vqa_cocoformat.json"
     vis_processor:
       eval:
@@ -32,7 +28,7 @@ run:
   max_iters: 60000
 
   seed: 42
-  output_dir: "/mnt/petrelfs/hanxiao/input/vigc/generate/result"
+  output_dir: "/mnt/petrelfs/hanxiao/input/vig/generate/result"
 
   evaluate: True
   test_splits: [ "eval" ]

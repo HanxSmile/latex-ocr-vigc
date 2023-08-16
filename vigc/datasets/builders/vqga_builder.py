@@ -38,7 +38,7 @@ TASK2BULDER = {
 
 
 class VQGABuilder(BaseDatasetBuilder):
-    TASK = "vqga"
+    TASK = "vig"
     TYPE = None
     DATASET_CONFIG_DICT = {"default": None}
 
@@ -73,46 +73,46 @@ class VQGABuilder(BaseDatasetBuilder):
 
 ############################ VQGA  ##############################
 
-@registry.register_builder("instruct_blip_llava_comp_vqga")
-class LlavaCompVQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_llava_comp_vig")
+class LlavaCompVIGBuilder(VQGABuilder):
     TYPE = "llava_comp"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
 
-@registry.register_builder("instruct_blip_llava_desc_vqga")
-class LlavaDescVQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_llava_desc_vig")
+class LlavaDescVIGBuilder(VQGABuilder):
     TYPE = "llava_desc"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
 
-@registry.register_builder("instruct_blip_llava_conv_vqga")
-class LlavaConvVQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_llava_conv_vig")
+class LlavaConvVIGBuilder(VQGABuilder):
     TYPE = "llava_conv"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
 
-@registry.register_builder("instruct_blip_aokvqa_vqga")
-class A_OKVQA_VQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_aokvqa_vig")
+class A_OKVQA_VIGBuilder(VQGABuilder):
     TYPE = "a_okvqa"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
 
-@registry.register_builder("instruct_blip_okvqa_vqga")
-class OKVQA_VQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_okvqa_vig")
+class OKVQA_VIGBuilder(VQGABuilder):
     TYPE = "okvqa"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
 
-@registry.register_builder("instruct_blip_vqav2_vqga")
-class VQAv2_VQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_vqav2_vig")
+class VQAv2_VIGBuilder(VQGABuilder):
     TYPE = "vqav2"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
 
-@registry.register_builder("instruct_blip_coco_pseudo_vqga")
-class COCO_Pseudo_VQGABuilder(VQGABuilder):
+@registry.register_builder("instruct_blip_coco_pseudo_vig")
+class COCO_Pseudo_VIGBuilder(VQGABuilder):
     TYPE = "coco_pseudo"
-    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vqga")}
+    DATASET_CONFIG_DICT = {"default": ALL_DATASET_CONFIG_DICT[TYPE].format(task="vig")}
 
     def build_datasets(self):
         # at this point, all the annotations and image/videos should be all downloaded to the specified locations.

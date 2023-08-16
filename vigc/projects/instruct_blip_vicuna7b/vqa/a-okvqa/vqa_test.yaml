@@ -6,11 +6,6 @@
 model:
   arch: blip2_vicuna_instruct
   model_type: vicuna7b
-  load_pretrained: True
-
-  pretrained: "/mnt/petrelfs/hanxiao/input/instruct-blip/evaluate_vqa/result/20230711174/checkpoint_best.pth"
-  llm_model: "/mnt/petrelfs/hanxiao/vicuna-7b"
-
 
 datasets:
 

@@ -24,276 +24,209 @@
 <a href="https://blog.salesforceairesearch.com/lavis-language-vision-library/">Blog</a>
 </div>
 
-# LAVIS - A Library for Language-Vision Intelligence
+# VIGC: Visual Instruction Generation and Correction
 
-## What's New: 🎉 
-  * [Model Release] May 2023, released implementation of **InstructBLIP** <br>
-  [Paper](https://arxiv.org/abs/2305.06500), [Project Page](https://github.com/salesforce/LAVIS/tree/main/projects/instructblip)    
-  > A new vision-language instruction-tuning framework using BLIP-2 models, achieving state-of-the-art zero-shot generalization performance on a wide range of vision-language tasks.
-  * [Model Release] Jan 2023, released implementation of **BLIP-2** <br>
-  [Paper](https://arxiv.org/abs/2301.12597), [Project Page](https://github.com/salesforce/LAVIS/tree/main/projects/blip2), [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/salesforce/LAVIS/blob/main/examples/blip2_instructed_generation.ipynb)
-  > A generic and efficient pre-training strategy that easily harvests development of pretrained vision models and large language models (LLMs) for vision-language pretraining. BLIP-2 beats Flamingo on zero-shot VQAv2 (**65.0** vs **56.3**), establishing new state-of-the-art on zero-shot captioning (on NoCaps **121.6** CIDEr score vs previous best **113.2**). In addition, equipped with powerful LLMs (e.g. OPT, FlanT5), BLIP-2 also unlocks the new **zero-shot instructed vision-to-language generation** capabilities for various interesting applications!
-  * Jan 2023, LAVIS is now available on [PyPI](https://pypi.org/project/salesforce-lavis/) for installation!
-  * [Model Release] Dec 2022, released implementation of **Img2LLM-VQA** (**CVPR 2023**, _"From Images to Textual Prompts: Zero-shot VQA with Frozen Large Language Models"_, by Jiaxian Guo et al) <br>
-  [Paper](https://arxiv.org/pdf/2212.10846.pdf), [Project Page](https://github.com/salesforce/LAVIS/tree/main/projects/img2llm-vqa), [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/salesforce/LAVIS/blob/main/projects/img2llm-vqa/img2llm_vqa.ipynb)
-  > A plug-and-play module that enables off-the-shelf use of Large Language Models (LLMs) for visual question answering (VQA). Img2LLM-VQA surpasses Flamingo on zero-shot VQA on VQAv2 (61.9 vs 56.3), while in contrast requiring no end-to-end training! 
-  * [Model Release] Oct 2022, released implementation of **PNP-VQA** (**EMNLP Findings 2022**, _"Plug-and-Play VQA: Zero-shot VQA by Conjoining Large Pretrained Models with Zero Training"_, by Anthony T.M.H. et al), <br> 
-  [Paper](https://arxiv.org/abs/2210.08773), [Project Page](https://github.com/salesforce/LAVIS/tree/main/projects/pnp-vqa), [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/salesforce/LAVIS/blob/main/projects/pnp-vqa/pnp_vqa.ipynb))
-  >  A modular zero-shot VQA framework that requires no PLMs training, achieving SoTA zero-shot VQA performance. 
-    
 ## Table of Contents
   - [Introduction](#introduction)
   - [Installation](#installation)
   - [Getting Started](#getting-started)
     - [Model Zoo](#model-zoo)
-    - [Image Captioning](#image-captioning)
-    - [Visual question answering (VQA)](#visual-question-answering-vqa)
-    - [Unified Feature Extraction Interface](#unified-feature-extraction-interface)
-    - [Load Datasets](#load-datasets)
-  - [Jupyter Notebook Examples](#jupyter-notebook-examples)
+  - [Tutorials](#Tutorials)
+    - [Generate QA](#generate-qa)
+    - [Train VIGC Model](#train-vigc-model)
+    - [Train VQA Model](#train-vqa-model)
+
   - [Resources and Tools](#resources-and-tools)
   - [Documentations](#documentations)
-  - [Ethical and Responsible Use](#ethical-and-responsible-use)
-  - [Technical Report and Citing LAVIS](#technical-report-and-citing-lavis)
+  - [Paper and Citing VIGC](#paper-and-citing-vigc)
   - [License](#license)
 
 ## Introduction
-LAVIS is a Python deep learning library for LAnguage-and-VISion intelligence research and applications. This library aims to provide engineers and researchers with a one-stop solution to rapidly develop models for their specific multimodal scenarios, and benchmark them across standard and customized datasets.
-It features a unified interface design to access
-- **10+** tasks
-(retrieval, captioning, visual question answering, multimodal classification etc.);
-- **20+** datasets (COCO, Flickr, Nocaps, Conceptual
-Commons, SBU, etc.);
-- **30+** pretrained weights of state-of-the-art foundation language-vision models and their task-specific adaptations, including [ALBEF](https://arxiv.org/pdf/2107.07651.pdf),
-[BLIP](https://arxiv.org/pdf/2201.12086.pdf), [ALPRO](https://arxiv.org/pdf/2112.09583.pdf), [CLIP](https://arxiv.org/pdf/2103.00020.pdf).
+Recent advancements in multimodal large language model have been propelled by the integration of visual encoders and large language models. However, high-quality instruction-tuning data for vision-language tasks is relatively scarce. Current data, mostly generated based on language-only GPT-4, are costly to produce, often lack complete image-corresponding text descriptions, and exhibit limited diversity. To address this issue, we introduce **the Visual Instruction Generation and Correction (VIGC)** framework that enables models to generate high-quality fine-tuning data autonomously. This self-instruct framework consists of the **Visual Instruction Generation (VIG)** model and the **Visual Instruction Correction (VIC)** module. **VIG** guides the vision-language model to generate more diverse fine-tuning data based on existing instruction-tuning data. The quality of the generated data is overseen by the VIC module, which employs an iterative update mechanism to correct the data produced by **VIG**, significantly mitigating the issue of hallucination. **VIGC** provides valuable guidance for multimodal large model research by ensuring the automatic production of diverse data and eliminating hallucinatory content. Leveraging the diverse, high-quality data generated by **VIGC**, we fine-tune mainstream models and validate data quality based on both subjective and objective evaluations. Experimental results demonstrate that our data not only compensates for the shortcomings of text-only data generation methods, but also effectively enhances the overall performance of the models. The models, datasets, and code will be made publicly available.
+
 <p align="center">
     <br>
-    <img src="assets/demo-6.png"/>
+    <img src="assets/overview.png"/>
     <br>
 <p>
-
-Key features of LAVIS include:
-
-- **Unified and Modular Interface**: facilitating to easily leverage and repurpose existing modules (datasets, models, preprocessors), also to add new modules.
-
-- **Easy Off-the-shelf Inference and Feature Extraction**: readily available pre-trained models let you take advantage of state-of-the-art multimodal understanding and generation capabilities on your own data.
-
-- **Reproducible Model Zoo and Training Recipes**: easily replicate and extend state-of-the-art models on existing and new tasks.
-
-- **Dataset Zoo and Automatic Downloading Tools**: it can be a hassle to prepare the many language-vision datasets. LAVIS provides automatic downloading scripts to help prepare a large variety of datasets and their annotations.
-
-
-The following table shows the supported tasks, datasets and models in our library. This is a continuing effort and we are working on further growing the list.
-
-|                  Tasks                   |     Supported Models     |             Supported Datasets             |
-| :--------------------------------------: | :----------------------: | :----------------------------------------: |
-|         Image-text Pre-training          |       ALBEF, BLIP        | COCO, VisualGenome, SBU ConceptualCaptions |
-|           Image-text Retrieval           |    ALBEF, BLIP, CLIP     |              COCO, Flickr30k               |
-|           Text-image Retrieval           |    ALBEF, BLIP, CLIP     |              COCO, Flickr30k               |
-|        Visual Question Answering         |       ALBEF, BLIP        |           VQAv2, OKVQA, A-OKVQA            |
-|             Image Captioning             |           BLIP           |                COCO, NoCaps                |
-|           Image Classification           |           CLIP           |                  ImageNet                  |
-| Natural Language Visual Reasoning (NLVR) |       ALBEF, BLIP        |                   NLVR2                    |
-|          Visual Entailment (VE)          |          ALBEF           |                  SNLI-VE                   |
-|             Visual Dialogue              |           BLIP           |                  VisDial                   |
-|           Video-text Retrieval           |       BLIP, ALPRO        |               MSRVTT, DiDeMo               |
-|           Text-video Retrieval           |       BLIP, ALPRO        |               MSRVTT, DiDeMo               |
-|    Video Question Answering (VideoQA)    |       BLIP, ALPRO        |                MSRVTT, MSVD                |
-|              Video Dialogue              |         VGD-GPT          |                    AVSD                    |
-|      Multimodal Feature Extraction       | ALBEF, CLIP, BLIP, ALPRO |                 customized                 |
-|         Text-to-image Generation         |      [COMING SOON]       |                                            |
 
 ## Installation
 
 1. (Optional) Creating conda environment
 
 ```bash
-conda create -n lavis python=3.8
-conda activate lavis
+conda create -n vigc python=3.8
+conda activate vigc
 ```
 
-2. install from [PyPI](https://pypi.org/project/salesforce-lavis/)
-```bash
-pip install salesforce-lavis
-```
-    
-3. Or, for development, you may build from source
+2. Install mmpretrain (you can follow the [tutorial](https://github.com/open-mmlab/mmpretrain))
+3. You may build from source
 
 ```bash
-git clone https://github.com/salesforce/LAVIS.git
-cd LAVIS
+git clone  https://gitlab.pjlab.org.cn/fdc/mllm/vigc.git
+cd vigc
 pip install -e .
 ```
 
 ## Getting Started
+
 ### Model Zoo
-Model zoo summarizes supported models in LAVIS, to view:
-```python
-from lavis.models import model_zoo
-print(model_zoo)
-# ==================================================
-# Architectures                  Types
-# ==================================================
-# albef_classification           ve
-# albef_feature_extractor        base
-# albef_nlvr                     nlvr
-# albef_pretrain                 base
-# albef_retrieval                coco, flickr
-# albef_vqa                      vqav2
-# alpro_qa                       msrvtt, msvd
-# alpro_retrieval                msrvtt, didemo
-# blip_caption                   base_coco, large_coco
-# blip_classification            base
-# blip_feature_extractor         base
-# blip_nlvr                      nlvr
-# blip_pretrain                  base
-# blip_retrieval                 coco, flickr
-# blip_vqa                       vqav2, okvqa, aokvqa
-# clip_feature_extractor         ViT-B-32, ViT-B-16, ViT-L-14, ViT-L-14-336, RN50
-# clip                           ViT-B-32, ViT-B-16, ViT-L-14, ViT-L-14-336, RN50
-# gpt_dialogue                   base
+
+Please download the following pretrained checkpoint and finetuned checkpoint, then modify the `pretrained` and `finetuned` in the corresponding model config.
+
+| VIGC Model              | Pretrain checkpoint                                          | finetuned checkpoint                                         | config                                           |
+| ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------ |
+| Mini-GPT4(vicuna7b)     | /mnt/petrelfs/hanxiao/input/instruct-blip/blip2_pretrained_flant5xxl.pth | /mnt/petrelfs/hanxiao/input/instruct-blip/minigpt4_proj_7b.pth | vigc/configs/models/mini_gpt4_vicuna7b.yaml      |
+| Mini-GPT4(vicuna13b)    | /mnt/petrelfs/hanxiao/input/instruct-blip/blip2_pretrained_flant5xxl.pth | /mnt/petrelfs/hanxiao/input/instruct-blip/minigpt4_proj_13b.pth | vigc/configs/models/mini_gpt4_vicuna13b.yaml     |
+| Instruct Blip(vicuna7b) | /mnt/petrelfs/hanxiao/input/instruct-blip/instruct_blip_vicuna7b_trimmed.pth | N/A                                                          | vigc/configs/models/blip2_instruct_vicuna7b.yaml |
+
+### Ready-made VIGC Model
+
+| Model                  | Train Data | checkpoint |
+| ---------------------- | ---------- | ---------- |
+| Mini-GPT4(vicuna7b)    | Llava      |            |
+| Mini-GPT4(vicuna13b)   | Llava      |            |
+| InstructBlip(vicuna7b) | A-OKVQA    |            |
+| InstructBlip(vicuna7b) | OKVQA      |            |
+
+## Tutorials
+
+### Prepare Vicuna Weights
+
+VIGC uses frozen Vicuna 7B and 13B models. Please first follow the following instructions to prepare Vicuna v1.1 weights. Then modify the `llm_model` in the [Model Config](https://github.com/salesforce/LAVIS/blob/main/lavis/configs/models/blip2/blip2_instruct_vicuna7b.yaml) to the folder that contains Vicuna weights.
+
+```bash
+git lfs clone https://huggingface.co/lmsys/vicuna-7b-v1.1  # download vicuna7b weights
+git lfs clone https://huggingface.co/lmsys/vicuna-13b-v1.1  # download vicuna13b weights
 ```
 
-Let’s see how to use models in LAVIS to perform inference on example data. We first load a sample image from local.
+### Generate QA
 
-```python
-import torch
-from PIL import Image
-# setup device to use
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# load sample image
-raw_image = Image.open("docs/_static/merlion.png").convert("RGB")
-```
+1. generate QA based on COCO2017 for Llava
 
-This example image shows [Merlion park](https://en.wikipedia.org/wiki/Merlion) ([source](https://theculturetrip.com/asia/singapore/articles/what-exactly-is-singapores-merlion-anyway/)), a landmark in Singapore.
+   1. You should first download the [finetuned checkpoint file](#ready-made-vigc-model) (Mini-GPT4 vicuna7b or vicuna13b)
+   2. Then modify the `finetuned` in corresponding Inference Config to the path to the checkpoint file.
 
+   ```bash
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna7b/generate_qa/llava-150k/generate_llava_qa_conv.yaml   # generate conversation data for Llava using MiniGPT4-vicuna7b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna7b/generate_qa/llava-150k/generate_llava_qa_detail.yaml   # generate detail description data for Llava using MiniGPT4-vicuna7b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna7b/generate_qa/llava-150k/generate_llava_qa_complex.yaml   # generate complex reasoning data for Llava using MiniGPT4-vicuna7b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna13b/generate_qa/llava-150k/generate_llava_qa_conv.yaml   # generate conversation data for Llava using MiniGPT4-vicuna13b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna13b/generate_qa/llava-150k/generate_llava_qa_detail.yaml   # generate detail description data for Llava using MiniGPT4-vicuna13b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna13b/generate_qa/llava-150k/generate_llava_qa_complex.yaml   # generate complex reasoning data for Llava using MiniGPT4-vicuna13b
+   ```
 
-### Image Captioning
-In this example, we use the BLIP model to generate a caption for the image. To make inference even easier, we also associate each
-pre-trained model with its preprocessors (transforms), accessed via ``load_model_and_preprocess()``.
+2. generate QA based on Object365 for Llava
 
-```python
-import torch
-from lavis.models import load_model_and_preprocess
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# loads BLIP caption base model, with finetuned checkpoints on MSCOCO captioning dataset.
-# this also loads the associated image processors
-model, vis_processors, _ = load_model_and_preprocess(name="blip_caption", model_type="base_coco", is_eval=True, device=device)
-# preprocess the image
-# vis_processors stores image transforms for "train" and "eval" (validation / testing / inference)
-image = vis_processors["eval"](raw_image).unsqueeze(0).to(device)
-# generate caption
-model.generate({"image": image})
-# ['a large fountain spewing water into the air']
-```
+   1. You should first download the [finetuned checkpoint file](#ready-made-vigc-model) (Mini-GPT4 vicuna7b or vicuna13b)
+   2. Then modify the `finetuned` in corresponding Inference Config to the path to the checkpoint file.
 
-### Visual question answering (VQA)
-BLIP model is able to answer free-form questions about images in natural language.
-To access the VQA model, simply replace the ``name`` and ``model_type`` arguments
-passed to ``load_model_and_preprocess()``.
+   ```bash
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna7b/generate_qa/llava-150k/generate_llava_qa_object365_conv.yaml   # generate conversation data for Llava using MiniGPT4-vicuna7b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna7b/generate_qa/llava-150k/generate_llava_qa_object365_detail.yaml  # generate detail description data for Llava using MiniGPT4-vicuna7b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna7b/generate_qa/llava-150k/generate_llava_qa_object365_complex.yaml   # generate complex reasoning data for Llava using MiniGPT4-vicuna7b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna13b/generate_qa/llava-150k/generate_llava_qa_object365_conv.yaml   # generate conversation data for Llava using MiniGPT4-vicuna13b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna13b/generate_qa/llava-150k/generate_llava_qa_object365_detail.yaml   # generate detail description data for Llava using MiniGPT4-vicuna13b
+   
+   torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/mini_gpt4_vicuna13b/generate_qa/llava-150k/generate_llava_qa_object365_complex.yaml   # generate complex reasoning data for Llava using MiniGPT4-vicuna13b
+   ```
 
-```python
-from lavis.models import load_model_and_preprocess
-model, vis_processors, txt_processors = load_model_and_preprocess(name="blip_vqa", model_type="vqav2", is_eval=True, device=device)
-# ask a random question.
-question = "Which city is this photo taken?"
-image = vis_processors["eval"](raw_image).unsqueeze(0).to(device)
-question = txt_processors["eval"](question)
-model.predict_answers(samples={"image": image, "text_input": question}, inference_method="generate")
-# ['singapore']
-```
+3. generate QA based on COCO2017 for A-OKVQA or OKVQA
 
-### Unified Feature Extraction Interface
+   1. You should first download the  [finetuned checkpoint file](#ready-made-vigc-model) (InstructBlip vicuna7b)
 
-LAVIS provides a unified interface to extract features from each architecture. 
-To extract features, we load the feature extractor variants of each model.
-The multimodal feature can be used for multimodal classification.
-The low-dimensional unimodal features can be used to compute cross-modal similarity.
+   2. Then modify the `pretrained` in corresponding Inference Config to the path to the checkpoint file.
 
+   3. Generate the question first:
 
-```python
-from lavis.models import load_model_and_preprocess
-model, vis_processors, txt_processors = load_model_and_preprocess(name="blip_feature_extractor", model_type="base", is_eval=True, device=device)
-caption = "a large fountain spewing water into the air"
-image = vis_processors["eval"](raw_image).unsqueeze(0).to(device)
-text_input = txt_processors["eval"](caption)
-sample = {"image": image, "text_input": [text_input]}
+      ```bash
+      torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/instruct_blip_vicuna7b/generate_qa/a-okvqa/generate_question.yaml   # generate questions for A-OKVQA using instruct-blip-vicuna7b
+      
+      torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/instruct_blip_vicuna7b/generate_qa/okvqa/generate_question.yaml   # generate questions for OKVQA using instruct-blip-vicuna7b
+      ```
 
-features_multimodal = model.extract_features(sample)
-print(features_multimodal.multimodal_embeds.shape)
-# torch.Size([1, 12, 768]), use features_multimodal[:,0,:] for multimodal classification tasks
+   4. Modify the `annotaion` in `generate_answer.yaml` to the path of the questions generated in the above step, then generate the answers: 
 
-features_image = model.extract_features(sample, mode="image")
-features_text = model.extract_features(sample, mode="text")
-print(features_image.image_embeds.shape)
-# torch.Size([1, 197, 768])
-print(features_text.text_embeds.shape)
-# torch.Size([1, 12, 768])
+      ```bash
+      torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/instruct_blip_vicuna7b/generate_qa/a-okvqa/generate_answer.yaml   # generate answers for A-OKVQA using instruct-blip-vicuna7b
+      
+      torchrun --nproc_per_node=8 evaluate.py --cfg-path vigc/projects/instruct_blip_vicuna7b/generate_qa/okvqa/generate_answer.yaml   # generate answers for OKVQA using instruct-blip-vicuna7b
+      ```
 
-# low-dimensional projected features
-print(features_image.image_embeds_proj.shape)
-# torch.Size([1, 197, 256])
-print(features_text.text_embeds_proj.shape)
-# torch.Size([1, 12, 256])
-similarity = features_image.image_embeds_proj[:,0,:] @ features_text.text_embeds_proj[:,0,:].t()
-print(similarity)
-# tensor([[0.2622]])
-```
+### Train VIGC Model
 
-### Load Datasets
-LAVIS inherently supports a wide variety of common language-vision datasets by providing [automatic download tools](https://opensource.salesforce.com/LAVIS//latest/benchmark) to help download and organize these datasets. After downloading, to load the datasets, use the following code:
+1. Finetune Instruct Blip to train a A-OKVQA VIGC model
 
-```python
-from lavis.datasets.builders import dataset_zoo
-dataset_names = dataset_zoo.get_names()
-print(dataset_names)
-# ['aok_vqa', 'coco_caption', 'coco_retrieval', 'coco_vqa', 'conceptual_caption_12m',
-#  'conceptual_caption_3m', 'didemo_retrieval', 'flickr30k', 'imagenet', 'laion2B_multi',
-#  'msrvtt_caption', 'msrvtt_qa', 'msrvtt_retrieval', 'msvd_caption', 'msvd_qa', 'nlvr',
-#  'nocaps', 'ok_vqa', 'sbu_caption', 'snli_ve', 'vatex_caption', 'vg_caption', 'vg_vqa']
-```
-After downloading the images, we can use ``load_dataset()`` to obtain the dataset.
-```python
-from lavis.datasets.builders import load_dataset
-coco_dataset = load_dataset("coco_caption")
-print(coco_dataset.keys())
-# dict_keys(['train', 'val', 'test'])
-print(len(coco_dataset["train"]))
-# 566747
-print(coco_dataset["train"][0])
-# {'image': <PIL.Image.Image image mode=RGB size=640x480>,
-#  'text_input': 'A woman wearing a net on her head cutting a cake. ',
-#  'image_id': 0}
-```
+   ```python
+   torchrun --nproc_per_node=8 train.py --cfg-path vigc/projects/instruct_blip_vicuna7b/vig/a-okvqa/normal_vqga.yaml
+   ```
 
-If you already host a local copy of the dataset, you can pass in the ``vis_path`` argument to change the default location to load images.
+2. Finetune Instruct Blip to train a OKVQA VIGC model
 
-```python
-coco_dataset = load_dataset("coco_caption", vis_path=YOUR_LOCAL_PATH)
-```
+   ```bash
+   torchrun --nproc_per_node=8 train.py --cfg-path vigc/projects/instruct_blip_vicuna7b/vig/okvqa/normal_vqga.yaml
+   ```
 
-## Jupyter Notebook Examples
-See [examples](https://github.com/salesforce/LAVIS/tree/main/examples) for more inference examples, e.g. captioning, feature extraction, VQA, GradCam, zeros-shot classification.
+3. Finetune Mini-GPT4 to train a Llava instruct 150k VIGC model
+
+   ```bash
+   torchrun --nproc_per_node=8 train.py  --cfg-path vigc/projects/mini_gpt4_vicuna7b/vig/llava-150k/normal_vqga.yaml  # using Mini-GPT4 Vicuna7b
+   
+   torchrun --nproc_per_node=8 train.py  --cfg-path vigc/projects/mini_gpt4_vicuna13b/vig/llava-150k/normal_vqga.yaml  # using Mini-GPT4 Vicuna13b
+   ```
+
+### Train VQA Model
+
+1. Train a baseline model of A-OKVQA using Instruct Blip
+
+   ```bash
+   torchrun --nproc_per_node=8 train.py  --cfg-path vigc/projects/instruct_blip_vicuna7b/vqa/a-okvqa/normal_vqa.yaml  # using Instructblip Vicuna7b
+   ```
+
+2. Make use of VIGC data to train a better model of A-OKVQA using Instruct Blip
+
+   ```bash
+   torchrun --nproc_per_node=8 train.py  --cfg-path vigc/projects/instruct_blip_vicuna7b/vqa/a-okvqa/coco_pseudo_vqa.yaml  # using Instructblip Vicuna7b
+   ```
+
+3. Train a baseline model of OKVQA using Instruct Blip
+
+   ```bash
+   torchrun --nproc_per_node=8 train.py  --cfg-path vigc/projects/instruct_blip_vicuna7b/vqa/okvqa/normal_vqa.yaml  # using Instructblip Vicuna7b
+   ```
+
+4. Make use of VIGC data to train a better model of OKVQA using Instruct Blip
+
+   ```bash
+   torchrun --nproc_per_node=8 train.py  --cfg-path vigc/projects/instruct_blip_vicuna7b/vqa/okvqa/coco_pseudo_vqa.yaml  # using Instructblip Vicuna7b
+   ```
 
 ## Resources and Tools
-- **Benchmarks**: see [Benchmark](https://opensource.salesforce.com/LAVIS//latest/benchmark) for instructions to evaluate and train supported models.
-- **Dataset Download and Browsing**: see [Dataset Download](https://opensource.salesforce.com/LAVIS//latest/benchmark) for instructions and automatic tools on download common language-vision datasets.
-- **GUI Demo**: to run the demo locally, run ```bash run_scripts/run_demo.sh``` and then follow the instruction on the prompts to view in browser. A web demo is coming soon.
+- **GUI Demo**: to run the demo locally, run ```bash vigc_demo.sh``` and then follow the instruction on the prompts to view in browser. Arguments are as follows:
+  - device0: The gpu id of the first model
+  - device1: The gpu id of the second model
+  - ckpt_minigpt4: The checkpoint file of the Mini-GPT4 model
+  - ckpt_instruct_blip: The checkpoint file of the Instruct Blip model
 
 
 ## Documentations
 For more details and advanced usages, please refer to
 [documentation](https://opensource.salesforce.com/LAVIS//latest/index.html#).
 
-## Ethical and Responsible Use
-We note that models in LAVIS provide no guarantees on their multimodal abilities; incorrect or biased predictions may be observed. In particular, the datasets and pretrained models utilized in LAVIS may contain socioeconomic biases which could result in misclassification and other unwanted behaviors such as offensive or inappropriate speech. We strongly recommend that users review the pre-trained models and overall system in LAVIS before practical adoption. We plan to improve the library by investigating and mitigating these potential biases and
-inappropriate behaviors in the future.
 
+## Paper and Citing VIGC
+You can find more details in our [paper](https://arxiv.org/abs/2209.09019).
 
-## Technical Report and Citing LAVIS
-You can find more details in our [technical report](https://arxiv.org/abs/2209.09019).
-
-If you're using LAVIS in your research or applications, please cite using this BibTeX:
+If you're using VIGC in your research or applications, please cite using this BibTeX:
 ```bibtex
 @misc{li2022lavis,
       title={LAVIS: A Library for Language-Vision Intelligence}, 

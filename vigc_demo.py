@@ -217,6 +217,8 @@ if __name__ == '__main__':
         label="Repetition Penalty",
     )
 
+    question_textbox = gr.Textbox(label="Question:", placeholder="question", lines=2)
+
     device1 = torch.device(f"cuda:{args.device1}") if torch.cuda.is_available() else "cpu"
     device2 = torch.device(f"cuda:{args.device2}") if torch.cuda.is_available() else "cpu"
 
@@ -246,8 +248,8 @@ if __name__ == '__main__':
     print('Loading model done!')
 
 
-    def inference(image, task, min_len, max_len, beam_size, len_penalty, repetition_penalty, top_p, decoding_method,
-                  model_type, answer_length, last_infer_all, in_section):
+    def inference(image, question: str, task, min_len, max_len, beam_size, len_penalty, repetition_penalty, top_p,
+                  decoding_method, model_type, answer_length, last_infer_all, in_section):
         use_nucleus_sampling = decoding_method == "Nucleus sampling"
         use_minigpt4 = model_type.lower() == "minigpt4"
         last_infer_all = last_infer_all.lower() == "No Truncation".lower()
@@ -264,17 +266,25 @@ if __name__ == '__main__':
             vis_processors = instruct_blip_vis_processors
             device = device2
 
-        print(image, task, min_len, max_len, beam_size, len_penalty, repetition_penalty, top_p, use_nucleus_sampling,
-              model_type)
+        print(image, question, task, min_len, max_len, beam_size, len_penalty, repetition_penalty, top_p,
+              use_nucleus_sampling, model_type)
         image = vis_processors["eval"](image).unsqueeze(0).to(device)
-
         instructions = [prompt]
+        question = question.strip().capitalize()
+        if question:
+            question = [question]
+            answer_length -= 1
+            current_text = question
+        else:
+            question = None
+            current_text = instructions
+
         all_res = {
             "instruction": instructions,
-            "current_text": instructions,
+            "current_text": current_text,
             "answer": [""] * len(instructions),
             "answer_lst": [list() for _ in instructions],
-            "question": None,
+            "question": question,
             "original_answers": None,
             "corrected_answers": None,
             "valid": [True] * len(instructions)
@@ -303,8 +313,8 @@ if __name__ == '__main__':
 
     gr.Interface(
         fn=inference,
-        inputs=[image_input, task, min_len, max_len, beam_size, len_penalty, repetition_penalty, top_p,
-                sampling, model_type, answer_length, last_infer_all, in_section],
+        inputs=[image_input, question_textbox, task, min_len, max_len, beam_size, len_penalty, repetition_penalty,
+                top_p, sampling, model_type, answer_length, last_infer_all, in_section],
         outputs="text",
         allow_flagging="never",
     ).launch(share=True, enable_queue=True, server_name="0.0.0.0", debug=True)

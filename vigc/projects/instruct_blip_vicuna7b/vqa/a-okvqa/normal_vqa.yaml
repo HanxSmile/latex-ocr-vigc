@@ -6,14 +6,8 @@
 model:
   arch: blip2_vicuna_instruct
   model_type: vicuna7b
-  load_pretrained: True
-
-  pretrained: "/mnt/petrelfs/hanxiao/input/instruct-blip/instruct_blip_vicuna7b_trimmed.pth"
-  llm_model: "/mnt/petrelfs/hanxiao/vicuna-7b"
-
 
 datasets:
-
   ## A-OKVQA train
   instruct_blip_aokvqa_vqa:
     sample_ratio: 131

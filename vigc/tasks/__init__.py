@@ -8,7 +8,7 @@
 from vigc.common.registry import registry
 from vigc.tasks.base_task import BaseTask
 from vigc.tasks.caption_train_eval import InstructBlipCaptionTask
-from vigc.tasks.llava_150k_gen import InstructBlipLLavaVQGATask
+from vigc.tasks.llava_150k_gen import InstructBlipLLavaVIGTask
 from vigc.tasks.vqa_train_eval import InstructBlipVQATask
 from vigc.tasks.vqg_test import InstructBlipVQGTask
 
@@ -26,7 +26,7 @@ def setup_task(cfg):
 __all__ = [
     "BaseTask",
     "InstructBlipCaptionTask",
-    "InstructBlipLLavaVQGATask",
+    "InstructBlipLLavaVIGTask",
     "InstructBlipVQATask",
     "InstructBlipVQGTask",
 ]

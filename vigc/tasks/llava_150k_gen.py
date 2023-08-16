@@ -6,7 +6,7 @@ from vigc.models.blip2_models.blip2 import disabled_train
 from vigc.models import load_model_and_preprocess
 from peft import LoraConfig, get_peft_model
 
-VIGA_INSTRUCTIONS = {
+VIG_INSTRUCTIONS = {
     "comp":
         "Based on the given image, generate an in-depth reasoning question and then answer it.",
     "conv":
@@ -16,12 +16,12 @@ VIGA_INSTRUCTIONS = {
 }
 
 
-@registry.register_task("instruct_blip_llava_viqa")
-class InstructBlipLLavaVQGATask(BaseTask):
+@registry.register_task("instruct_blip_llava_vig")
+class InstructBlipLLavaVIGTask(BaseTask):
 
     def __init__(self, num_beams, max_len, min_len, use_nucleus_sampling, evaluate, task, report_metric=False,
-                 answer_length=1, gen_style="vqga", last_infer_all=False, in_section=False):
-        super(InstructBlipLLavaVQGATask, self).__init__()
+                 answer_length=1, gen_style="vig", last_infer_all=False, in_section=False):
+        super(InstructBlipLLavaVIGTask, self).__init__()
         self.num_beams = num_beams
         self.max_len = max_len
         self.min_len = min_len
@@ -30,10 +30,10 @@ class InstructBlipLLavaVQGATask(BaseTask):
         self.report_metric = report_metric
         self.answer_length = answer_length
         task = task.lower()
-        assert task in VIGA_INSTRUCTIONS
-        self.prompt = VIGA_INSTRUCTIONS[task]
+        assert task in VIG_INSTRUCTIONS
+        self.prompt = VIG_INSTRUCTIONS[task]
         gen_style = gen_style.lower()
-        assert gen_style in ("vqga", "vqa")
+        assert gen_style in ("vig", "vqa")
         self.gen_style = gen_style
         self.last_infer_all = last_infer_all
         self.in_section = in_section
@@ -101,7 +101,7 @@ class InstructBlipLLavaVQGATask(BaseTask):
 
         report_metric = run_cfg.get("report_metric", False)
         answer_len = run_cfg.get("answer_length", 1)
-        gen_style = run_cfg.get("gen_style", "vqga")
+        gen_style = run_cfg.get("gen_style", "vig")
         last_infer_all = run_cfg.get("last_infer_all", False)
         in_section = run_cfg.get("in_section", False)
         task = run_cfg.llava_task
@@ -145,7 +145,7 @@ class InstructBlipLLavaVQGATask(BaseTask):
             for i, (c, q) in enumerate(zip(conversation["instruction"], conversation["question"])):
                 current_text = c
                 if q:
-                    current_text = f"{current_text} Question: {q} Answer:" if self.gen_style == "vqga" else q
+                    current_text = f"{current_text} Question: {q} Answer:" if self.gen_style == "vig" else q
                 current_texts.append(current_text)
             conversation["current_text"] = current_texts
         elif not self.in_section:
