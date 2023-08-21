@@ -22,7 +22,7 @@ run:
   task: instruct_blip_llava_vig
   answer_length: 4
   llava_task: comp  # desc, comp or conv
-  gen_style: vig  # vig or vqa
+  gen_style: vig  # vig or vic
 
   batch_size_train: 16
   batch_size_eval: 8

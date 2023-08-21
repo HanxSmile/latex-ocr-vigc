@@ -33,7 +33,7 @@ class InstructBlipLLavaVIGTask(BaseTask):
         assert task in VIG_INSTRUCTIONS
         self.prompt = VIG_INSTRUCTIONS[task]
         gen_style = gen_style.lower()
-        assert gen_style in ("vig", "vqa")
+        assert gen_style in ("vig", "vic")
         self.gen_style = gen_style
         self.last_infer_all = last_infer_all
         self.in_section = in_section
@@ -150,8 +150,8 @@ class InstructBlipLLavaVIGTask(BaseTask):
             conversation["current_text"] = current_texts
         elif not self.in_section:
             current_answers = []
-            if conversation["corrected_answers"] is None:
-                conversation["corrected_answers"] = text
+            if conversation["answers_given_question"] is None:
+                conversation["answers_given_question"] = text
             for answer in text:
                 A = ""
                 if "." in answer:
@@ -172,8 +172,8 @@ class InstructBlipLLavaVIGTask(BaseTask):
         else:  # in_section
             current_answers = []
             first_flag = True
-            if conversation["corrected_answers"] is None:
-                conversation["corrected_answers"] = text
+            if conversation["answers_given_question"] is None:
+                conversation["answers_given_question"] = text
             else:
                 first_flag = False
             for i, answer in enumerate(text):
@@ -207,7 +207,7 @@ class InstructBlipLLavaVIGTask(BaseTask):
             "answer_lst": [list() for _ in instructions],
             "question": None,
             "original_answers": None,
-            "corrected_answers": None,
+            "answers_given_question": None,
             "valid": [True] * len(instructions)
         }
         images = samples["image"]
@@ -231,7 +231,7 @@ class InstructBlipLLavaVIGTask(BaseTask):
                 all_res["question"],
                 all_res["valid"],
                 all_res["original_answers"],
-                all_res["corrected_answers"],
+                all_res["answers_given_question"],
                 all_res["answer_lst"]):
             raw_samples = raw_samples.copy()
 
@@ -240,7 +240,7 @@ class InstructBlipLLavaVIGTask(BaseTask):
                 "whole_text": current_text,
                 "answer": answer,
                 "original_answer": original_answer,
-                "corrected_answer": corrected_answer,
+                "answer_given_question": corrected_answer,
                 "question": question,
                 "answer_lst": answer_lst
             })

@@ -5,10 +5,10 @@ from .base_dataset import BaseDataset
 
 
 class A_OKVQA_VIG_EvalDataset(BaseDataset):
-    VQGA_INSTRUCTIONS = (
+    VIG_INSTRUCTIONS = (
         "Based on the content of the given image, generate a question that requires reasoning using a variety of knowledge types such as commonsense and then briefly answer it.",
     )
-    VQGA_PROMPTS = (
+    VIG_PROMPTS = (
         " Question: {q}",
     )
 
@@ -31,8 +31,8 @@ class A_OKVQA_VIG_EvalDataset(BaseDataset):
         answers = list(answer_weight.keys())
         weights = list(answer_weight.values())
 
-        instruction = random.choice(self.VQGA_INSTRUCTIONS)
-        prompt = random.choice(self.VQGA_PROMPTS)
+        instruction = random.choice(self.VIG_INSTRUCTIONS)
+        prompt = random.choice(self.VIG_PROMPTS)
         question = instruction + prompt.format(q=question)
 
         raw_sample = {"img_path": ann["image_path"], "question": ann["question"], "gt_answer": answers,
@@ -76,8 +76,8 @@ class OKVQA_VIG_EvalDataset(A_OKVQA_VIG_EvalDataset):
         answers = list(answer_weight.keys())
         weights = list(answer_weight.values())
 
-        instruction = random.choice(self.VQGA_INSTRUCTIONS)
-        prompt = random.choice(self.VQGA_PROMPTS)
+        instruction = random.choice(self.VIG_INSTRUCTIONS)
+        prompt = random.choice(self.VIG_PROMPTS)
         question = instruction + prompt.format(q=question)
 
         image_id = int(ann["image"].split("_")[-1][:-4])
@@ -122,7 +122,7 @@ class COCO2017_Eval_Dataset(A_OKVQA_VIG_EvalDataset):
 
         image = self.vis_processor(self._read_image(ann))
 
-        instruction = random.choice(self.VQGA_INSTRUCTIONS)
+        instruction = random.choice(self.VIG_INSTRUCTIONS)
         # question = self.text_processor(instruction)
         question = instruction
         image_path = ann["image"]
@@ -159,7 +159,7 @@ class Object365_Eval_Dataset(A_OKVQA_VIG_EvalDataset):
 
         image = self.vis_processor(self._read_image(ann))
 
-        instruction = random.choice(self.VQGA_INSTRUCTIONS)
+        instruction = random.choice(self.VIG_INSTRUCTIONS)
         # question = self.text_processor(instruction)
         question = instruction
         image_path = ann["image"]
@@ -175,7 +175,7 @@ class Object365_Eval_Dataset(A_OKVQA_VIG_EvalDataset):
         return input_sample, raw_sample
 
 
-class COCO2017_JiaHui_Eval_Dataset(A_OKVQA_VIG_EvalDataset):
+class COCO2017_Given_Question_Eval_Dataset(A_OKVQA_VIG_EvalDataset):
     PROMPTS = (
         "Question: {q} Short answer:",
     )
@@ -204,7 +204,7 @@ class COCO2017_JiaHui_Eval_Dataset(A_OKVQA_VIG_EvalDataset):
 
 
 class LlavaEvalDataset(BaseDataset):
-    VQGA_INSTRUCTIONS = {
+    VIG_INSTRUCTIONS = {
         "complex_reasoning_77k.json": (
             "Based on the given image, generate an in-depth reasoning question and then answer it.",),
         "conversation_58k.json": (
@@ -213,7 +213,7 @@ class LlavaEvalDataset(BaseDataset):
             "Generate a question to describe the image content in detail and then answer it.",)
     }
 
-    VQGA_PROMPTS = (
+    VIG_PROMPTS = (
         " Question: {q}",
     )
 
@@ -240,10 +240,10 @@ class LlavaEvalDataset(BaseDataset):
 
         process_ann = self.get_qa_image(ann)
         image, question, answer = process_ann["image"], process_ann["question"], process_ann["answer"]
-        all_instructions = self.VQGA_INSTRUCTIONS[ann["dataset"]]
+        all_instructions = self.VIG_INSTRUCTIONS[ann["dataset"]]
 
         instruction = random.choice(all_instructions)
-        prompt = random.choice(self.VQGA_PROMPTS)
+        prompt = random.choice(self.VIG_PROMPTS)
         question = instruction + prompt.format(q=question)
         image_path = ann["image"]
         image_id = int(image_path.split("_")[-1][:-4])

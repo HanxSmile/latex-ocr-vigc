@@ -10,13 +10,13 @@ from vigc.datasets.builders.base_dataset_builder import load_dataset_config
 from vigc.common.registry import registry
 
 from vigc.datasets.builders.caption_builder import CCSBUBuilder
-from vigc.datasets.builders.vqa_eval_builder import (
+from vigc.datasets.builders.vic_eval_builder import (
     AOKVQAEvalBuilder,
     VQAv2EvalBuilder,
     OKVQAEvalBuilder,
 )
 
-from vigc.datasets.builders.vqga_builder import (
+from vigc.datasets.builders.vig_builder import (
     LlavaCompVIGBuilder,
     LlavaDescVIGBuilder,
     LlavaConvVIGBuilder,
@@ -38,7 +38,7 @@ from vigc.datasets.builders.vqga_builder import (
     OKVQA_VQGBuilder,
     COCO_Pseudo_VQGBuilder,
 )
-from vigc.datasets.builders.vqga_eval_builder import (
+from vigc.datasets.builders.vig_eval_builder import (
     AOKVQAEvalBuilder,
     COCO_Jiahui_VQGBuilder,
     COCOPseudoEvalBuilder,

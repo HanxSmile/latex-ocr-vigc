@@ -5,7 +5,7 @@ model:
 
 
 datasets:
-  instruct_blip_jiahui_coco2017_vig_test: # name of the dataset builder
+  instruct_blip_given_q_coco2017_vig_test: # name of the dataset builder
     annotation: "/mnt/petrelfs/share_data/pengjiahui/test_vqa_cocoformat.json"
     vis_processor:
       eval:
