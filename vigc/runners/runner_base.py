@@ -606,9 +606,9 @@ class RunnerBase:
         else:
             save_to = os.path.join(
                 self.output_dir,
-                "checkpoint_{}.pth".format(cur_epoch),
+                "checkpoint_{}.pth".format(cur_epoch+1),
             )
-        logging.info("Saving checkpoint at epoch {} to {}.".format(cur_epoch, save_to))
+        logging.info("Saving checkpoint at epoch {} to {}.".format(cur_epoch+1, save_to))
         torch.save(save_obj, save_to)
 
     def _reload_best_model(self, model):
@@ -652,7 +652,7 @@ class RunnerBase:
         if self.scaler and "scaler" in checkpoint:
             self.scaler.load_state_dict(checkpoint["scaler"])
 
-        self.start_epoch = checkpoint["epoch"] + 1
+        self.start_epoch = checkpoint["epoch"]
         logging.info("Resume checkpoint from {}".format(url_or_filename))
 
     @main_process
