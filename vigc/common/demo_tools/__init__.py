@@ -143,7 +143,7 @@ def prepare_models(args):
     )
 
     instruct_blip_model.load_checkpoint(MODEL_CKPT["instruct_blip"]["pretrained"])
-    instruct_blip_model.load_checkpoint(MODEL_CKPT["instruct_blip"]["finetuned"])
+    instruct_blip_model.load_checkpoint(args.ckpt_instruct_blip or MODEL_CKPT["instruct_blip"]["finetuned"])
 
     print('Loading model done!')
     res = {
