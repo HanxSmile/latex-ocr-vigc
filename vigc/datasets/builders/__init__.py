@@ -47,6 +47,13 @@ from vigc.datasets.builders.vig_eval_builder import (
     LlavaVQGAEvalBuilder,
 )
 
+from vigc.datasets.builders.intern_builder import (
+    CCSBUAlignBuilder,
+    AOKVQA_SQA_Builder,
+    ScienceQABuilder,
+    LLavaInstruct150kBuilder
+)
+
 __all__ = [
     # "AOKVQA_Train_Builder",
     "VQAv2EvalBuilder",
@@ -80,6 +87,10 @@ __all__ = [
     "LlavaVQGAEvalBuilder",
     "CCSBUBuilder",
 
+    "CCSBUAlignBuilder",
+    "AOKVQA_SQA_Builder",
+    "ScienceQABuilder",
+    "LLavaInstruct150kBuilder"
 ]
 
 

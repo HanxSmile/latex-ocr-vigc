@@ -12,13 +12,12 @@ from vigc.common.registry import registry
 
 from vigc.models.base_model import BaseModel
 
-
 from vigc.models.blip2_models.blip2 import Blip2Base
 from vigc.models.blip2_models.blip2_vicuna_instruct import Blip2VicunaInstruct
 from vigc.models.vit import VisionTransformerEncoder
 
 from vigc.processors.base_processor import BaseProcessor
-
+from vigc.models.blip2_models.inern import Intern_v0
 
 __all__ = [
     "load_model",
@@ -26,6 +25,7 @@ __all__ = [
     "Blip2Base",
     "Blip2VicunaInstruct",
     "VisionTransformerEncoder",
+    "Intern_v0"
 ]
 
 
@@ -182,17 +182,17 @@ class ModelZoo:
 
     def __str__(self) -> str:
         return (
-            "=" * 50
-            + "\n"
-            + f"{'Architectures':<30} {'Types'}\n"
-            + "=" * 50
-            + "\n"
-            + "\n".join(
-                [
-                    f"{name:<30} {', '.join(types)}"
-                    for name, types in self.model_zoo.items()
-                ]
-            )
+                "=" * 50
+                + "\n"
+                + f"{'Architectures':<30} {'Types'}\n"
+                + "=" * 50
+                + "\n"
+                + "\n".join(
+            [
+                f"{name:<30} {', '.join(types)}"
+                for name, types in self.model_zoo.items()
+            ]
+        )
         )
 
     def __iter__(self):
