@@ -172,18 +172,13 @@ def inference(all_elements):
             min_len,
             max_len,
             beam_size,
-            len_penalty,
-            repetition_penalty,
-            top_p,
-            decoding_method,
+            temperature,
             answer_length,
-            last_infer_all,
             in_section,
             model_type,
     ):
-        use_nucleus_sampling = decoding_method == "Nucleus sampling"
         use_minigpt4 = model_type.lower() == "minigpt4"
-        last_infer_all = last_infer_all.lower() == "No Truncation".lower()
+        last_infer_all = True
         answer_length = int(answer_length)
         prompt = VIGA_INSTRUCTIONS[task]
         in_section = in_section == "In Paragraph"
@@ -197,8 +192,7 @@ def inference(all_elements):
             vis_processors = instruct_blip_vis_processors
             device = device2
 
-        print(image, question, task, min_len, max_len, beam_size, len_penalty, repetition_penalty, top_p,
-              use_nucleus_sampling, model_type)
+        print(image, question, task, min_len, max_len, beam_size, model_type, temperature)
         image = vis_processors["eval"](image).unsqueeze(0).to(device)
         instructions = [prompt]
         question = question.strip().capitalize()
@@ -225,13 +219,10 @@ def inference(all_elements):
             this_sample = {"prompt": all_res["current_text"], "image": image}
             answers = model.generate(
                 this_sample,
-                length_penalty=float(len_penalty),
-                repetition_penalty=float(repetition_penalty),
                 num_beams=beam_size,
                 max_length=max_len,
                 min_length=min_len,
-                top_p=top_p,
-                use_nucleus_sampling=use_nucleus_sampling,
+                temperature=temperature,
             )
             _update(all_res, answers, step=i, answer_length=answer_length, in_section=in_section,
                     last_infer_all=last_infer_all)

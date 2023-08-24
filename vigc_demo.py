@@ -17,6 +17,24 @@ if __name__ == '__main__':
                     interactive=True,
                 )
                 image_input = gr.Image(type="pil")
+
+                with gr.Row().style(equal_height=True):
+                    in_section = gr.Radio(
+                        choices=["In Paragraph", "In Sentence"],
+                        value="In Sentence",
+                        label="Generate Style",
+                        interactive=True
+                    )
+
+                    answer_length = gr.Slider(
+                        minimum=1,
+                        maximum=10,
+                        value=4,
+                        step=1,
+                        interactive=True,
+                        label="Answer Length"
+                    )
+
                 with gr.Row():
                     min_len = gr.Slider(
                         minimum=1,
@@ -36,13 +54,13 @@ if __name__ == '__main__':
                         label="Max Length",
                     )
                 with gr.Row():
-                    top_p = gr.Slider(
-                        minimum=0.5,
+                    temperature = gr.Slider(
+                        minimum=0.1,
                         maximum=1.0,
-                        value=0.9,
+                        value=1.0,
                         step=0.1,
                         interactive=True,
-                        label="Top p",
+                        label="Temperature",
                     )
 
                     beam_size = gr.Slider(
@@ -53,55 +71,7 @@ if __name__ == '__main__':
                         interactive=True,
                         label="Beam Size",
                     )
-                with gr.Row():
-                    len_penalty = gr.Slider(
-                        minimum=-1,
-                        maximum=2,
-                        value=1,
-                        step=0.2,
-                        interactive=True,
-                        label="Length Penalty",
-                    )
 
-                    repetition_penalty = gr.Slider(
-                        minimum=-1,
-                        maximum=3,
-                        value=1,
-                        step=0.2,
-                        interactive=True,
-                        label="Repetition Penalty",
-                    )
-
-                with gr.Row():
-                    last_infer_all = gr.Radio(
-                        choices=["Truncation", "No Truncation"],
-                        value="No Truncation",
-                        label="Whether to Truncate the Answer",
-                        interactive=True
-                    )
-
-                    in_section = gr.Radio(
-                        choices=["In Paragraph", "In Sentence"],
-                        value="In Paragraph",
-                        label="Generate Style",
-                        interactive=True
-                    )
-                with gr.Row().style(equal_height=True):
-                    sampling = gr.Radio(
-                        choices=["Beam search", "Nucleus sampling"],
-                        value="Beam search",
-                        label="Text Decoding Method",
-                        interactive=True,
-                    )
-
-                    answer_length = gr.Slider(
-                        minimum=1,
-                        maximum=10,
-                        value=4,
-                        step=1,
-                        interactive=True,
-                        label="Answer Length"
-                    )
             with gr.Column():
                 with gr.Column():
                     task = gr.Radio(
@@ -112,23 +82,11 @@ if __name__ == '__main__':
                     )
                     gen_qa_button = gr.Button("Generate QA-pairs", variant="primary", size="sm")
 
-                with gr.Column():
-                    question_textbox = gr.Textbox(label="Question:", placeholder="question", lines=2)
-                    gen_ans_button = gr.Button("Generate Answer", variant="primary", size="sm")
-
-                text_output = gr.Textbox(label="Output:")
+                text_output = gr.Textbox(label="Output:", lines=10)
             gen_qa_button.click(
                 fn=inference,
-                inputs=[image_input, empty_text_box, task, min_len, max_len, beam_size, len_penalty, repetition_penalty,
-                        top_p, sampling, answer_length, last_infer_all, in_section, model_type],
-                outputs=text_output
-            )
-
-            gen_ans_button.click(
-                fn=inference,
-                inputs=[image_input, question_textbox, task, min_len, max_len, beam_size, len_penalty,
-                        repetition_penalty,
-                        top_p, sampling, answer_length, last_infer_all, in_section, model_type],
+                inputs=[image_input, empty_text_box, task, min_len, max_len, beam_size, temperature,
+                        answer_length, in_section, model_type],
                 outputs=text_output
             )
 
