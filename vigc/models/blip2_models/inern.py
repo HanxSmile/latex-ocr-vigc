@@ -959,7 +959,6 @@ conversation
 
         model = cls(
             vit_model=vit_model,
-            q_former_model=q_former_model,
             img_size=img_size,
             drop_path_rate=drop_path_rate,
             use_grad_checkpoint=use_grad_checkpoint,
