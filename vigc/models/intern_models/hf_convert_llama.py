@@ -28,7 +28,6 @@ import sentencepiece as spm
 from transformers.tokenization_utils import PreTrainedTokenizer
 from transformers.utils import logging
 
-
 logger = logging.get_logger(__name__)
 
 VOCAB_FILES_NAMES = {"vocab_file": "../model/llama/llamav4.model"}
@@ -50,17 +49,17 @@ class LlamaTokenizer(PreTrainedTokenizer):
     model_input_names = ["input_ids", "attention_mask"]
 
     def __init__(
-        self,
-        vocab_file,
-        unk_token="<unk>",
-        bos_token="<s>",
-        eos_token="</s>",
-        sp_model_kwargs: Optional[Dict[str, Any]] = None,
-        add_bos_token=True,
-        add_eos_token=False,
-        decode_with_prefix_space=False,
-        clean_up_tokenization_spaces=False,
-        **kwargs,
+            self,
+            vocab_file,
+            unk_token="<unk>",
+            bos_token="<s>",
+            eos_token="</s>",
+            sp_model_kwargs: Optional[Dict[str, Any]] = None,
+            add_bos_token=True,
+            add_eos_token=False,
+            decode_with_prefix_space=False,
+            clean_up_tokenization_spaces=False,
+            **kwargs,
     ):
         self.sp_model_kwargs = {} if sp_model_kwargs is None else sp_model_kwargs
         super().__init__(
@@ -190,7 +189,8 @@ class LlamaTokenizer(PreTrainedTokenizer):
         return output
 
     def get_special_tokens_mask(
-        self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None, already_has_special_tokens: bool = False
+            self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None,
+            already_has_special_tokens: bool = False
     ) -> List[int]:
         """
         Retrieve sequence ids from a token list that has no special tokens added. This method is called when adding
@@ -217,7 +217,7 @@ class LlamaTokenizer(PreTrainedTokenizer):
         return [1] + ([0] * len(token_ids_0)) + [1, 1] + ([0] * len(token_ids_1)) + [1]
 
     def create_token_type_ids_from_sequences(
-        self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None
+            self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None
     ) -> List[int]:
         """
         Create a mask from the two sequences passed to be used in a sequence-pair classification task. T5 does not make

@@ -8,10 +8,10 @@ import torch
 import torch.nn as nn
 
 from vigc.common.registry import registry
-from vigc.models.blip2_models.blip2 import Blip2Base, disabled_train
-from vigc.models.blip2_models.hf_convert_llama import LlamaTokenizer as PyTokenizer
-from vigc.models.blip2_models.modeling_llama import LlamaForCausalLM
-from vigc.models.blip2_models.lora import LoRALinear
+from vigc.models.intern_models.blip2 import Blip2Base, disabled_train
+from vigc.models.intern_models.hf_convert_llama import LlamaTokenizer as PyTokenizer
+from vigc.models.intern_models.modeling_llama import LlamaForCausalLM
+from vigc.models.intern_models.lora import LoRALinear
 from transformers import LlamaTokenizer, AutoTokenizer
 from transformers.models.llama.configuration_llama import LlamaConfig
 import transformers

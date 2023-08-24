@@ -17,7 +17,7 @@ from vigc.models.blip2_models.blip2_vicuna_instruct import Blip2VicunaInstruct
 from vigc.models.vit import VisionTransformerEncoder
 
 from vigc.processors.base_processor import BaseProcessor
-from vigc.models.blip2_models.inern import Intern_v0
+from vigc.models.intern_models.intern import Intern_v0
 
 __all__ = [
     "load_model",
