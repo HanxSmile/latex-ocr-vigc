@@ -1,0 +1,7 @@
+datasets:
+  cc_sbu_align:
+    data_type: images
+    build_info:
+      # storage: '/nvme/zhangpan/Data/cc_sbu_align'
+      storage: '/mnt/petrelfs/share_data/zhangpan/dataset/cc_sbu_align'
+      ###  3439 pairs, 377 letters in average

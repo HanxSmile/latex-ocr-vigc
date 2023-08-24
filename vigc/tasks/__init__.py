@@ -11,6 +11,7 @@ from vigc.tasks.caption_train_eval import InstructBlipCaptionTask
 from vigc.tasks.llava_150k_gen import InstructBlipLLavaVIGTask
 from vigc.tasks.vqa_train_eval import InstructBlipVQATask
 from vigc.tasks.vqg_test import InstructBlipVQGTask
+from vigc.tasks.image_text_pretrain import ImageTextPretrainTask
 
 
 def setup_task(cfg):
@@ -29,4 +30,5 @@ __all__ = [
     "InstructBlipLLavaVIGTask",
     "InstructBlipVQATask",
     "InstructBlipVQGTask",
+    "ImageTextPretrainTask"
 ]

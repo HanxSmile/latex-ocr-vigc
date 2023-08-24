@@ -1,0 +1,8 @@
+datasets:
+  aokvqa_sqa:
+    data_type: images
+    build_info:
+      # annotation: cluster2:s3://mllm-data-alg/A-OKVQA/aokvqa_v1p0_train_cocofmt.json
+      # images: cluster2:s3://mllm-data-alg/COCO2017
+      annotation: /mnt/petrelfs/share_data/wangjiaqi/mllm-data-alg/A-OKVQA/aokvqa_v1p0_train.json
+      images: /mnt/petrelfs/share_data/wangjiaqi/mllm-data-alg/COCO2017

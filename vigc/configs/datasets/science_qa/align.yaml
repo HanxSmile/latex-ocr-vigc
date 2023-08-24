@@ -1,0 +1,8 @@
+datasets:
+  science_qa:
+    data_type: images
+    build_info:
+      # storage: '/nvme/zhangpan/Data/ScienceQA'
+      #storage: '/mnt/petrelfs/share_data/zhangpan/dataset/ScienceQA'
+      # storage: 'cluster2:s3://mllm-data-alg/ScienceQA/'
+      storage: /mnt/petrelfs/share_data/wangjiaqi/mllm-data-alg/ScienceQA/
