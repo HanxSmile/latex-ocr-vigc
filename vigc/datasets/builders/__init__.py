@@ -54,6 +54,8 @@ from vigc.datasets.builders.intern_builder import (
     LLavaInstruct150kBuilder
 )
 
+from vigc.datasets.builders.intern_vigc_builder import *
+
 __all__ = [
     # "AOKVQA_Train_Builder",
     "VQAv2EvalBuilder",
