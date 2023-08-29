@@ -9,6 +9,8 @@ from vigc.datasets.datasets.intern_datasets.cc_sbu_dataset import CCSBUAlignData
 from vigc.datasets.datasets.intern_datasets.vqa_datasets import AOKVQA_SQA_Dataset
 from vigc.datasets.datasets.intern_datasets.science_qa_dataset import ScienceQADataset
 from vigc.datasets.datasets.intern_datasets.llava_instruct150k_dataset import LLavaInstruct150kDataset
+from vigc.datasets.datasets.intern_datasets.gqa_conversation_datasets import GQA_Conv_Dataset
+from vigc.datasets.datasets.intern_datasets.vr_datasets import VSRVRDataset
 
 
 @registry.register_builder("cc_sbu_align")
@@ -142,6 +144,72 @@ class LLavaInstruct150kBuilder(BaseDatasetBuilder):
             vis_processor=self.vis_processors["train"],
             text_processor=self.text_processors["train"],
             data_root=storage_path,
+            det_res=build_info.get('det_res', None),
+        )
+        datasets['train'][0]
+
+        return datasets
+
+
+@registry.register_builder("vqav2_conv")
+class VQAv2_Conv_Builder(BaseDatasetBuilder):
+    train_dataset_cls = GQA_Conv_Dataset
+
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/vqav2/defaults_conv.yaml",
+    }
+
+    def build_datasets(self):
+        # at this point, all the annotations and image/videos should be all downloaded to the specified locations.
+        logging.info(f"Building datasets: gqa_conversation...")
+        self.build_processors()
+
+        build_info = self.config.build_info
+        ann_paths = build_info.annotations,
+        vis_root = build_info.images
+
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.train_dataset_cls
+        datasets['train'] = dataset_cls(
+            vis_processor=self.vis_processors["train"],
+            text_processor=self.text_processors["train"],
+            vis_root=vis_root,
+            anno_path=ann_paths,
+            det_res=build_info.get('det_res', None),
+        )
+        datasets['train'][0]
+
+        return datasets
+
+
+@registry.register_builder("vsr_vr")
+class GQAVRBuilder(BaseDatasetBuilder):
+    train_dataset_cls = VSRVRDataset
+
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/vsr/defaults.yaml",
+    }
+
+    def build_datasets(self):
+        # at this point, all the annotations and image/videos should be all downloaded to the specified locations.
+        logging.info(f"Building datasets: vsr_vr...")
+        self.build_processors()
+
+        build_info = self.config.build_info
+        ann_paths = build_info.annotations,
+        vis_root = build_info.images
+
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.train_dataset_cls
+        datasets['train'] = dataset_cls(
+            vis_processor=self.vis_processors["train"],
+            text_processor=self.text_processors["train"],
+            vis_root=vis_root,
+            anno_path=ann_paths,
             det_res=build_info.get('det_res', None),
         )
         datasets['train'][0]

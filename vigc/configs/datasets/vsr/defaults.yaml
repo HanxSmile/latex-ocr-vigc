@@ -1,0 +1,6 @@
+datasets:
+  vsr_vr:
+    data_type: images
+    build_info:
+      annotations: /mnt/petrelfs/share_data/dongxiaoyi/share_data/vsr/train_cocofmt.json
+      images: /mnt/petrelfs/share_data/wangjiaqi/mllm-data-alg/visual-spatial-reasoning/data/trainval2017

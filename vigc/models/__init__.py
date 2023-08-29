@@ -18,6 +18,7 @@ from vigc.models.vit import VisionTransformerEncoder
 
 from vigc.processors.base_processor import BaseProcessor
 from vigc.models.intern_models.intern import Intern_v0
+from vigc.models.intern_models.intern_v2 import Intern_v2
 
 __all__ = [
     "load_model",
@@ -25,7 +26,8 @@ __all__ = [
     "Blip2Base",
     "Blip2VicunaInstruct",
     "VisionTransformerEncoder",
-    "Intern_v0"
+    "Intern_v0",
+    "Intern_v2"
 ]
 
 

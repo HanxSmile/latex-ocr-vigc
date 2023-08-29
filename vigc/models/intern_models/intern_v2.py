@@ -5,6 +5,7 @@ import math
 
 from functools import partial
 import torch
+from torch.cuda.amp import autocast as autocast
 import torch.nn as nn
 
 from vigc.common.registry import registry
@@ -18,32 +19,65 @@ import transformers
 
 transformers.logging.set_verbosity_error()
 
-from transformers import StoppingCriteriaList, StoppingCriteria
+from transformers import StoppingCriteriaList
+from .intern import StoppingCriteriaSub
 
-meta_instruction = """meta instruction
-You are an AI assistant whose name is 浦语.
-- 浦语 is a conversational language model that is developed by Shanghai AI Laboratory (上海人工智能实验室). It is designed to be helpful, honest, and harmless.
-- 浦语 can understand and communicate fluently in the language chosen by the user such as English and 中文.
-conversation
-"""
+import sys
+import re
 
 
-class StoppingCriteriaSub(StoppingCriteria):
+# import os
+# os.environ['CURL_CA_BUNDLE'] = ''
 
-    def __init__(self, stops=[], encounters=1):
-        super().__init__()
-        self.stops = stops
+def merge_lora_func(model, model_ckpt, scale, path):
+    print(f"Merge lora weight from {path}")
+    for name, param in model.llama_model.named_parameters():
+        if 'self_attn' in name and 'weight' in name:
+            lora_a = 'llama_model.' + name.replace('.weight', '.lora_A.weight')
+            lora_b = 'llama_model.' + name.replace('.weight', '.lora_B.weight')
+            linear = 'llama_model.' + name
+            lora_a_weight = model_ckpt.get(lora_a, None)
+            lora_b_weight = model_ckpt.get(lora_b, None)
+            if lora_a_weight is not None and lora_b_weight is not None:
+                lora_a_weight = lora_a_weight.float()
+                lora_b_weight = lora_b_weight.float()
+                lora_weight = lora_b_weight @ lora_a_weight
+                ori_weight = model_ckpt.get(linear).float()
+                new_weight = ori_weight + scale * lora_weight.to(ori_weight.device)
+                _ = model_ckpt.pop(lora_a)
+                _ = model_ckpt.pop(lora_b)
+                model_ckpt[linear] = new_weight
+                print(f"merge lora of {name}")
 
-    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor):
-        for stop in self.stops:
-            if torch.all((stop == input_ids[0][-len(stop):])).item():
-                return True
+                x = torch.rand(2, 1280, new_weight.shape[1]).cuda()
+                LN = nn.LayerNorm(new_weight.shape[1], elementwise_affine=False).cuda()
+                x = LN(x)
+                l1 = nn.Linear(new_weight.shape[1], new_weight.shape[0], bias=False).cuda()
+                l1.weight = nn.Parameter(new_weight.float().cuda())
+                l1.eval()
 
-        return False
+                l2 = LoRALinear(new_weight.shape[1], new_weight.shape[0], bias=False).cuda()
+                l2.lora_scaling = scale
+
+                l2.weight = nn.Parameter(ori_weight.float().cuda())
+                l2.lora_A.weight = nn.Parameter(lora_a_weight.float().cuda())
+                l2.lora_B.weight = nn.Parameter(lora_b_weight.float().cuda())
+                l2.eval()
+                o1 = l1(x)
+                o2 = l2(x)
+                assert torch.allclose(o1, o2, atol=1e-3)
+                print(f"merge check pass")
+    msg = model.load_state_dict(model_ckpt, strict=False)
+    print(msg)
+    for name, param in model.llama_model.named_parameters():
+        if 'lora_B' in name:
+            # print (name, torch.mean(param))
+            assert torch.mean(param) == 0  ### check the lora is init mode
+    return model
 
 
-@registry.register_model("intern_v0")
-class Intern_v0(Blip2Base):
+@registry.register_model("intern_v2")
+class Intern_v2(Blip2Base):
     """
     BLIP2 GPT-LLAMA model.
     """
@@ -55,6 +89,7 @@ class Intern_v0(Blip2Base):
     def __init__(
             self,
             vit_model="eva_clip_g",
+            q_former_model="https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/blip2_pretrained_flant5xxl.pth",
             img_size=224,
             drop_path_rate=0,
             use_grad_checkpoint=False,
@@ -73,6 +108,8 @@ class Intern_v0(Blip2Base):
             max_txt_len=32,
             low_resource=False,  # use 8 bit and put vit in cpu
             end_sym='\n',
+            load_in_8bit=True,
+            device_map='auto',
             fully_open_llm=False,
             llama_lora=None,
             gradient_checkpointing=False,
@@ -82,6 +119,8 @@ class Intern_v0(Blip2Base):
             meta_for_long=False,
             no_meta=False,
             balance_sample=False,
+            only_instruct_ft=False,
+            quant_pretrain=False,
     ):
         super().__init__()
 
@@ -89,27 +128,27 @@ class Intern_v0(Blip2Base):
         self.low_resource = low_resource
         self.meta_for_long = meta_for_long
         if self.meta_for_long:
-            logging.warning("meta instruction is only used for long answer now ###")
+            print("### WARNING: meta instruction is only used for long answer now ###")
 
         self.use_7132k = use_7132k
 
-        logging.warning("Intern v0 version is using")
+        print("### WARNING: Intern v0 version is using. ###")
 
         self.balance_sample = balance_sample
         if self.balance_sample:
-            logging.info('Sample balance is using now!')
+            print('Sample balance is using now!')
 
         self.mask_human = mask_human
         if self.mask_human:
-            logging.info("Only predict answer part")
+            print("Only predict answer part")
         else:
-            logging.info("predict both human question and assiatant answer")
+            print("predict both human question and assiatant answer")
 
         self.no_meta = no_meta
         if self.no_meta:
-            logging.info("No meta, only used for single data sft")
+            print("No meta, only used for single data sft")
 
-        logging.info('Loading VIT')
+        print('Loading VIT')
         self.visual_encoder, self.ln_vision = self.init_vision_encoder(
             vit_model, img_size, drop_path_rate, use_grad_checkpoint, vit_precision
         )
@@ -123,29 +162,29 @@ class Intern_v0(Blip2Base):
             self.ln_vision = self.ln_vision.eval()
             self.ln_vision.train = disabled_train
             logging.info("freeze vision encoder")
-        logging.info('Loading VIT Done')
+        print('Loading VIT Done')
 
         self.simple_conv_prompt = simple_conv_prompt
         if self.simple_conv_prompt:
-            logging.info("remove long prompt for conversation")
+            print("remove long prompt for conversation")
 
         self.use_qformer = use_qformer
         self.freeze_qformer = freeze_qformer
         self.freeze_qformer_query = freeze_qformer_query
         self.freeze_llama_proj = freeze_llama_proj
         if self.freeze_llama_proj:
-            logging.info("Freezing the linear of MiniGPT-4, only used for llama tuning")
+            print("Freezing the linear of MiniGPT-4, only used for llama tuning")
 
         self.instruct_blip = instruct_blip
         if self.instruct_blip:
-            logging.info("Tuning in InstructBlip way!!!")
+            print("Tuning in InstructBlip way!!!")
 
         self.img_embed_unfold = int(img_embed_unfold)
         if self.img_embed_unfold >= 2:
             self.unfold = nn.Unfold((self.img_embed_unfold, self.img_embed_unfold), stride=self.img_embed_unfold)
 
         if self.use_qformer:
-            logging.info('Loading Q-Former')
+            print('Loading Q-Former')
             self.Qformer, self.query_tokens = self.init_Qformer(
                 num_query_token, self.visual_encoder.num_features
             )
@@ -161,26 +200,35 @@ class Intern_v0(Blip2Base):
                 self.Qformer.resize_token_embeddings(len(self.tokenizer))
                 old_q_former_model = "https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/blip2_pretrained.pth"
                 msg = self.load_from_pretrained(url_or_filename=old_q_former_model)
-                logging.info("Load Text FFN for Instruct BLIP")
-                logging.info(msg)
+                print("Load Text FFN for Instruct BLIP")
+                print(msg)
             self.Qformer.cls = None
 
             # msg = self.load_from_pretrained(url_or_filename=q_former_model)
             # print ("Load from BLIP-2")
             # print (msg)
 
-            if self.freeze_qformer:
+            if self.freeze_qformer and not only_instruct_ft:
                 for name, param in self.Qformer.named_parameters():
                     param.requires_grad = False
                 self.Qformer = self.Qformer.eval()
                 self.Qformer.train = disabled_train
                 logging.info("freeze Qformer")
+
+            if self.freeze_qformer and only_instruct_ft:
+                for name, param in self.Qformer.named_parameters():
+                    param.requires_grad = False
+                    if '.layer.' in name and ('.output.' in name or '.intermediate.' in name):
+                        print(name)
+                        param.requires_grad = True
+                logging.info("Only Finetune NLP part of Qformer")
+
             if self.freeze_qformer_query:
                 self.query_tokens.requires_grad = False
                 logging.info("freeze Qformer query")
-            logging.info('Loading Q-Former Done')
+            print('Loading Q-Former Done')
 
-        logging.info('Loading LLAMA')
+        print('Loading LLAMA')
 
         if self.use_7132k:
             self.llama_tokenizer = PyTokenizer.from_pretrained("/mnt/petrelfs/share_data/yanhang/tokenizes/V7.model")
@@ -191,16 +239,14 @@ class Intern_v0(Blip2Base):
 
             self.eoh = self.llama_tokenizer.decode(torch.Tensor([103027]), skip_special_tokens=True)
             self.eoa = self.llama_tokenizer.decode(torch.Tensor([103028]), skip_special_tokens=True)
-            self.soi_id = 111111
-            '''
-            self.soi = self.llama_tokenizer.decode(torch.Tensor([46319]), skip_special_tokens=True)
+            self.itg_id = len(self.llama_tokenizer)
+            self.itg_token = '<ITG_TOKEN>'
+            self.soi_id = self.itg_id + 1
+            self.soi_token = '<SOI_TOKEN>'
+            if quant_pretrain:
+                new_tokens = [self.itg_token, self.soi_token]
+                self.llama_tokenizer.add_tokens(new_tokens)
 
-            new_tokens = [self.soi]
-            new_tokens = set(new_tokens) - set(self.llama_tokenizer.get_vocab().keys())
-            new_tokens = list(new_tokens)
-            new_tokens.sort()
-            self.llama_tokenizer.add_tokens(new_tokens)
-            '''
         else:
             self.llama_tokenizer = LlamaTokenizer.from_pretrained(llama_model, use_fast=False)
             self.llama_tokenizer.pad_token = self.llama_tokenizer.eos_token
@@ -279,7 +325,7 @@ class Intern_v0(Blip2Base):
             self.llama_model.apply(
                 partial(self.llama_model._set_gradient_checkpointing, value=True))
 
-        logging.info('Loading LLAMA Done')
+        print('Loading LLAMA Done')
 
         if self.use_qformer:
             self.llama_proj = nn.Linear(
@@ -287,7 +333,7 @@ class Intern_v0(Blip2Base):
             )
             if self.freeze_llama_proj:
                 for name, param in self.llama_proj.named_parameters():
-                    logging.info("freeze {} for lora only finetuning".format(name))
+                    print("freeze {} for lora only finetuning".format(name))
                     param.requires_grad = False
 
         else:
@@ -307,8 +353,8 @@ class Intern_v0(Blip2Base):
                 raw_prompts = f.read().splitlines()
             filted_prompts = [raw_prompt for raw_prompt in raw_prompts if "<ImageHere>" in raw_prompt]
             self.prompt_list = [prompt_template.format(p) for p in filted_prompts]
-            logging.info('Load {} training prompts'.format(len(self.prompt_list)))
-            logging.info('Prompt Example \n{}'.format(random.choice(self.prompt_list)))
+            print('Load {} training prompts'.format(len(self.prompt_list)))
+            print('Prompt Example \n{}'.format(random.choice(self.prompt_list)))
         else:
             self.prompt_list = []
 
@@ -321,8 +367,8 @@ class Intern_v0(Blip2Base):
         ]
 
         self.long_prompt_list = [prompt_template.format(p) for p in temp_long_prompts]
-        logging.info('Load {} training long  prompts'.format(len(self.long_prompt_list)))
-        logging.info('Long Prompt Example \n{}'.format(random.choice(self.long_prompt_list)))
+        print('Load {} training long  prompts'.format(len(self.long_prompt_list)))
+        print('Long Prompt Example \n{}'.format(random.choice(self.long_prompt_list)))
 
         stop_words_ids = [
             torch.tensor([103028]).to(self.device),
@@ -336,7 +382,6 @@ class Intern_v0(Blip2Base):
             'pure_conversation',
             'conversation',
             'cc_sub',
-            'long_vqa',
         ]
 
         self.long_list = [
@@ -574,7 +619,7 @@ class Intern_v0(Blip2Base):
             targets = self.mask_human_targets(to_regress_tokens.input_ids)
             targets = targets.to(self.device)
         #### mask human for short data, they share similar pattern in most cases
-        elif self.meta_for_long and data_type not in self.long_list:
+        elif self.meta_for_long and data_type not in self.meta_list:
             targets = self.mask_human_targets(to_regress_tokens.input_ids)
             targets = targets.to(self.device)
         else:
@@ -752,17 +797,12 @@ conversation
         #### cc_sbu, long caption
         elif samples['data_type'][0] == 'cc_sbu':
             prompt = random.choice(self.long_prompt_list).split('</Img>')[-1]
-            ## prompt
-            ## '### Human: <Img><ImageHere></Img> Describe this image in detail. \n### Assistant:
-            ## --> ' Describe this image in detail. \n### Assistant:
-
             #### move the instruction to input for simplfy
             for i in range(batch_size):
-                ## temp: ' Describe this image in detail. \n### Assistant:  {text_input}
                 temp = prompt + samples['text_input'][i]
                 samples['text_input'][i] = temp
 
-            instrct = prompt.split('###')[0]  # Describe this image in detail. \n
+            instrct = prompt.split('###')[0]
             prompt = ' <|User|>:<Img><ImageHere></Img>'
             img_embeds, atts_img = self.encode_img(image, instrct)
             img_embeds, atts_img, wrapped_target = self.prompt_wrap(img_embeds, atts_img, prompt)
@@ -774,25 +814,6 @@ conversation
             img_embeds = torch.cat([img_embeds, to_regress_embeds], dim=1)
             atts_img = torch.cat([atts_img, to_regress_tokens.attention_mask], dim=1)
             wrapped_target = torch.cat([wrapped_target, targets], dim=1)
-
-        elif samples['data_type'][0] == "vigc":
-            for i in range(batch_size):
-                prompt = samples["prompt"][i]
-                text_input = samples["text_input"][i]
-                temp = f"{prompt} \n### Assistant: {text_input}"
-                samples["text_input"][i] = temp
-
-            img_embeds, atts_img = self.encode_img(image, samples["prompt"])
-            prompt = ' <|User|>:<Img><ImageHere></Img>'
-            img_embeds, atts_img, wrapped_target = self.prompt_wrap(img_embeds, atts_img, prompt)
-            text = self.align_text(samples)
-            to_regress_tokens, targets = self.text2emb(text, samples['data_type'][0])
-
-            to_regress_embeds = self.llama_model.model.embed_tokens(to_regress_tokens.input_ids)
-            img_embeds = torch.cat([img_embeds, to_regress_embeds], dim=1)
-            atts_img = torch.cat([atts_img, to_regress_tokens.attention_mask], dim=1)
-            wrapped_target = torch.cat([wrapped_target, targets], dim=1)
-
 
         #### zhihu interleaved data
         elif samples['data_type'][0] == 'interleav':
@@ -836,11 +857,26 @@ conversation
             wrapped_target = torch.cat([wrapped_target, targets], dim=1)
 
         batch_size = img_embeds.shape[0]
-        bos = torch.ones([batch_size, 1]) * self.llama_tokenizer.bos_token_id
-        bos = bos.long().to(image.device)
-        meta_embeds = self.llama_model.model.embed_tokens(bos)
-        atts_meta = atts_img[:, :1]
-        meta_target = torch.ones(meta_embeds.shape[0], 1, dtype=torch.long).to(image.device) * -100
+
+        if self.meta_for_long and samples['data_type'][0] in self.meta_list:
+            meta_tokens = self.llama_tokenizer(
+                meta_instruction,
+                return_tensors="pt",
+                padding="longest",
+                truncation=False,
+                add_special_tokens=True
+            ).to(image.device)
+            meta_embeds = self.llama_model.model.embed_tokens(meta_tokens.input_ids).expand(batch_size, -1, -1)
+            atts_meta = meta_tokens.attention_mask.expand(batch_size, -1)
+            meta_target = torch.ones(meta_embeds.shape[0], meta_embeds.shape[1], dtype=torch.long).to(
+                image.device) * -100
+
+        else:
+            bos = torch.ones([batch_size, 1]) * self.llama_tokenizer.bos_token_id
+            bos = bos.long().to(image.device)
+            meta_embeds = self.llama_model.model.embed_tokens(bos)
+            atts_meta = atts_img[:, :1]
+            meta_target = torch.ones(meta_embeds.shape[0], 1, dtype=torch.long).to(image.device) * -100
 
         if self.debug_flag:
             le = len(samples['text_input'])
@@ -863,173 +899,21 @@ conversation
             )
         loss = outputs.loss
         return {"loss": loss}
+        '''
+        with self.maybe_autocast():
+            loss, loss_o, loss_l = self.llama_model(
+                inputs_embeds=inputs_embeds,
+                attention_mask=attention_mask,
+                return_dict=True,
+                labels=targets,
+            )
 
-    def caption_generate(
-            self,
-            samples,
-            use_nucleus_sampling=False,
-            num_beams=5,
-            max_length=256,
-            min_length=1,
-            top_p=0.9,
-            repetition_penalty=1.5,
-            length_penalty=1,
-            num_captions=1,
-            temperature=1,
-    ):
-
-        image = samples["image"].to(self.device)
-        txt_prompt = samples["prompt"]
-
-        if self.use_meta:
-            img_prompt = meta_instruction + ' <|Human|>:<ImageHere> '
-        else:
-            img_prompt = ' <|Human|>:<ImageHere> '
-
-        prompts = [img_prompt + _ + self.eoh + ' <|Assistant|>:' for _ in txt_prompt]
-
-        img_embeds, _ = self.model.encode_img(image)
-
-        prompt_segs = [prompt.split('<ImageHere>') for prompt in prompts]
-        prompt_seg_tokens = [[
-            self.llama_tokenizer(seg,
-                                 return_tensors='pt',
-                                 add_special_tokens=i == 0).
-                to(self.llama_model.model.embed_tokens.weight.device).input_ids
-            for i, seg in enumerate(prompt_seg)
-        ] for prompt_seg in prompt_segs]
-
-        prompt_seg_embs = [[
-            self.llama_model.model.embed_tokens(seg)
-            for seg in prompt_seg_token
-        ] for prompt_seg_token in prompt_seg_tokens]
-
-        first_prompt_seg_embeds = [
-            prompt_seg_embed[0] for prompt_seg_embed in prompt_seg_embs
-        ]
-        first_prompt_seg_embeds = torch.cat(first_prompt_seg_embeds, dim=0)
-        second_prompt_seg_embeds = [
-            prompt_seg_embed[1] for prompt_seg_embed in prompt_seg_embs
-        ]
-        second_prompt_seg_embeds = torch.cat(second_prompt_seg_embeds, dim=0)
-
-        prompt_seg_embs = [
-            first_prompt_seg_embeds, img_embeds, second_prompt_seg_embeds
-        ]
-        prompt_embs = torch.cat(prompt_seg_embs, dim=1)
-
-        # generate output
-        outputs = self.llama_model.generate(
-            inputs_embeds=prompt_embs,
-            max_length=max_length,
-            num_beams=num_beams,
-            min_length=min_length,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-            length_penalty=length_penalty,
-            temperature=temperature,
-            eos_token_id=self.llama_tokenizer.eos_token_id,
-            num_return_sequences=num_captions,
-            do_sample=use_nucleus_sampling,
-        )
-        res = []
-        for i, output in enumerate(outputs):
-            if output[0] == 0:
-                output = output[1:]
-            if output[0] == 1:
-                output = output[1:]
-            output_text = self.llama_tokenizer.decode(output,
-                                                      add_special_tokens=False)
-            output_text = output_text.split(self.eoa)[0]
-            output_text = output_text.split('<|Assistant|>')[-1].strip()
-            print(output_text)
-            res.append(output_text)
-        return res
-
-    @torch.no_grad()
-    def vqa_generate(self, samples):
-        self.llama_tokenizer.padding_side = 'left'
-
-        image = samples["image"].to(self.device)
-        questions = samples["prompt"]
-        self.use_meta = True
-        if self.use_meta:
-            img_prompt = meta_instruction + ' <|Human|>:<ImageHere> '
-        else:
-            img_prompt = ' <|Human|>:<ImageHere> '
-        # questions = [
-        #     self.txt_prompt.format(question) for question in questions
-        # ]
-
-        prompts = [
-            img_prompt + question + self.eoh + ' <|Assistant|>:' for question in questions
-        ]
-
-        img_embeds, img_attns = self.encode_img(image)
-
-        prompt_segs = [prompt.split('<ImageHere>') for prompt in prompts]
-        first_prompt_segs = [prompt_seg[0] for prompt_seg in prompt_segs]
-        second_prompt_segs = [prompt_seg[1] for prompt_seg in prompt_segs]
-
-        first_prompt_seg_res = self.llama_tokenizer(
-            first_prompt_segs, return_tensors='pt',
-            add_special_tokens=True).to(self.llama_model.device)
-        second_prompt_seg_res = self.llama_tokenizer(
-            second_prompt_segs,
-            return_tensors='pt',
-            add_special_tokens=False,
-            padding='longest',
-            truncation=True,
-            max_length=32).to(self.llama_model.device)
-        first_prompt_seg_tokens = first_prompt_seg_res.input_ids
-        second_prompt_seg_tokens = second_prompt_seg_res.input_ids
-
-        first_prompt_seg_embeds = self.llama_model.model.embed_tokens(
-            first_prompt_seg_tokens)
-        second_prompt_seg_embeds = self.llama_model.model.embed_tokens(
-            second_prompt_seg_tokens)
-
-        prompt_seg_embs = [
-            first_prompt_seg_embeds, img_embeds, second_prompt_seg_embeds
-        ]
-        prompt_embs = torch.cat(prompt_seg_embs, dim=1)
-        attn_masks = torch.cat([
-            first_prompt_seg_res.attention_mask, img_attns,
-            second_prompt_seg_res.attention_mask
-        ],
-            dim=1)
-
-        # generate output
-        outputs = self.llama_model.generate(
-            inputs_embeds=prompt_embs,
-            attention_mask=attn_masks,
-            do_sample=False,
-            max_length=50,
-            num_beams=5,
-            min_length=1,
-            length_penalty=-1.0,
-            eos_token_id=self.llama_tokenizer.eos_token_id)
-        res = []
-        for i, output in enumerate(outputs):
-            if output[0] == 0:
-                output = output[1:]
-            if output[0] == 1:
-                output = output[1:]
-            output_text = self.llama_tokenizer.decode(output,
-                                                      add_special_tokens=False)
-
-            output_text = output_text.split(self.eoa)[0]
-            output_text = output_text.split('</s>')[0]
-            output_text = output_text.split('<|Assistant|>')[-1].strip()
-            output_text = output_text.replace('|', '')
-            output_text = output_text.replace('>', '')
-            output_text = output_text.replace(':', '')
-            # if output_text[-1] == '.':
-            #    output_text = output_text[:-1]
-            output_text = output_text.strip()
-            res.append(output_text)
-            print(output_text)
-        return res
+        return {
+                 "loss": loss,
+                 "loss_o": loss_o,
+                 "loss_l": loss_l,
+               }
+        '''
 
     @torch.no_grad()
     def generate(
@@ -1135,7 +1019,6 @@ conversation
         img_embed_unfold = cfg.get("img_embed_unfold", 1)
         freeze_qformer = cfg.get("freeze_qformer", True)
         freeze_qformer_query = cfg.get("freeze_qformer_query", True)
-        instruct_blip = cfg.get("instruct_blip", False)
         low_resource = cfg.get("low_resource", False)
         gradient_checkpointing = cfg.get("gradient_checkpointing", False)
         freeze_llama_proj = cfg.get("freeze_llama_proj", False)
@@ -1148,15 +1031,22 @@ conversation
         cfg_7132k = cfg.get("7132k", '')
         use_7132k = cfg_7132k != ''
         mask_human = cfg.get("mask_human", True)
-        merge_lora = cfg.get('merge_lora', False)
         data_debug = cfg.get('data_debug', False)
         meta_for_long = cfg.get('meta_for_long', False)
         only_load_qformer = cfg.get('only_load_qformer', False)
         no_meta = cfg.get('no_meta', False)
         balance_sample = cfg.get('balance_sample', False)
 
+        instruct_blip = cfg.get("instruct_blip", False)
+        only_instruct_ft = cfg.get("only_instruct_ft", False)
+        quant_pretrain = cfg.get('quant_pretrain', False)
+
+        merge_lora = cfg.get('merge_lora', False)
+        merge_lora_scale = cfg.get('merge_lora_scale', 2)
+
         model = cls(
             vit_model=vit_model,
+            q_former_model=q_former_model,
             img_size=img_size,
             drop_path_rate=drop_path_rate,
             use_grad_checkpoint=use_grad_checkpoint,
@@ -1184,6 +1074,8 @@ conversation
             meta_for_long=meta_for_long,
             no_meta=no_meta,
             balance_sample=balance_sample,
+            only_instruct_ft=only_instruct_ft,
+            quant_pretrain=quant_pretrain,
         )
 
         if data_debug:
@@ -1191,6 +1083,8 @@ conversation
             return model
 
         if use_7132k:
+            if quant_pretrain:
+                model.llama_model.resize_token_embeddings(len(model.llama_tokenizer))
             ckpt_path = cfg['7132k'].get("ckpt", "")  # load weights of 7132k
             if ckpt_path:
                 print("Load 7132k-LLM Checkpoint: {}".format(ckpt_path))
@@ -1216,49 +1110,7 @@ conversation
                             print(f"Remove {key} from pretrain model")
 
                 if merge_lora:
-                    print("Merge lora weight into the origin model weight")
-                    model_ckpt = ckpt
-                    # scale = llama_lora.lora_alpha / llama_lora.lora_r ### wrong when the pretrain use a different setting with finetune
-                    scale = 2
-                    for name, param in model.llama_model.named_parameters():
-                        if 'self_attn' in name and 'weight' in name:
-                            lora_a = 'llama_model.' + name.replace('.weight', '.lora_A.weight')
-                            lora_b = 'llama_model.' + name.replace('.weight', '.lora_B.weight')
-                            linear = 'llama_model.' + name
-                            lora_a_weight = model_ckpt.get(lora_a, None)
-                            lora_b_weight = model_ckpt.get(lora_b, None)
-                            if lora_a_weight is not None and lora_b_weight is not None:
-                                lora_a_weight = lora_a_weight.float()
-                                lora_b_weight = lora_b_weight.float()
-                                lora_weight = lora_b_weight @ lora_a_weight
-                                ori_weight = model_ckpt.get(linear).float()
-                                new_weight = ori_weight + scale * lora_weight.to(ori_weight.device)
-                                _ = model_ckpt.pop(lora_a)
-                                _ = model_ckpt.pop(lora_b)
-                                model_ckpt[linear] = new_weight
-                                print(f"merge lora of {name}")
-                                x = torch.rand(2, 1280, 4096).cuda()
-                                LN = nn.LayerNorm(4096, elementwise_affine=False).cuda()
-                                x = LN(x)
-                                l1 = nn.Linear(4096, 4096, bias=False).cuda()
-                                l1.weight = nn.Parameter(new_weight.float().cuda())
-                                l1.eval()
-
-                                l2 = LoRALinear(4096, 4096, bias=False).cuda()
-                                l2.weight = nn.Parameter(ori_weight.float().cuda())
-                                l2.lora_A.weight = nn.Parameter(lora_a_weight.float().cuda())
-                                l2.lora_B.weight = nn.Parameter(lora_b_weight.float().cuda())
-                                l2.eval()
-                                o1 = l1(x)
-                                o2 = l2(x)
-                                assert torch.allclose(o1, o2, atol=1e-3)
-                                print(f"merge check pass")
-                    msg = model.load_state_dict(model_ckpt, strict=False)
-                    print(msg)
-                    for name, param in model.llama_model.named_parameters():
-                        if 'lora_B' in name:
-                            # print (name, torch.mean(param))
-                            assert torch.mean(param) == 0  ### check the lora is init mode
+                    model = merge_lora_func(model, ckpt, scale=merge_lora_scale, path='ckpt_path')
 
                 else:
                     msg = model.load_state_dict(ckpt, strict=False)
@@ -1270,8 +1122,9 @@ conversation
                             if 'lora_B' in name:
                                 assert torch.mean(param) == 0  ### check the lora is init mode
 
-        # model.llama_model.resize_token_embeddings(len(model.llama_tokenizer))
-        # print (f"Resize token embedding to {len(model.llama_tokenizer)}")
+        for name, param in model.llama_model.named_parameters():
+            if name.find("embed_tokens") != -1 or name.find("lm_head") != -1:
+                param.requires_grad = False
 
         ckpt_path = cfg.get("ckpt", "")  # load weights of MiniGPT-4
         if ckpt_path:
