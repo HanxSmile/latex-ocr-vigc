@@ -100,6 +100,7 @@ datasets:
     sample_ratio: 30
 
 run:
+  runner: runner_iter
   task: image_text_pretrain
   # optimizer
   lr_sched: "linear_warmup_cosine_lr"
@@ -109,7 +110,7 @@ run:
   accum_grad_iters: 8
 
   weight_decay: 0.05
-  max_epoch: 6
+  max_iters: 14976
   iters_per_epoch: 2496
   batch_size_train: 8
   batch_size_eval: 1
