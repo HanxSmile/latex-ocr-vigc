@@ -70,7 +70,7 @@ datasets:
   vsr_vr:
     vis_processor:
       train:
-        name: "blip2_image_eval"
+        name: "blip_image_eval"
         image_size: 224
     text_processor:
       train:
