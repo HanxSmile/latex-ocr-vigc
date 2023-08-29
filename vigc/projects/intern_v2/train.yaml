@@ -111,7 +111,7 @@ run:
 
   weight_decay: 0.05
   max_iters: 14976
-  iters_per_epoch: 2496
+  iters_per_inner_epoch: 2496
   batch_size_train: 8
   batch_size_eval: 1
   num_workers: 8
