@@ -11,6 +11,7 @@ import random
 from vigc.common.registry import registry
 from vigc.processors.base_processor import BaseProcessor
 from omegaconf import OmegaConf
+from string import Template
 
 
 def get_question_text(problem):
@@ -246,3 +247,57 @@ class ConversationTextProcessor(BaseProcessor):
         # print(conversation)
         del_header_conv = conversation.replace("<image>", "").split("### Human:", 1)[-1].lstrip()
         return del_header_conv
+
+
+@registry.register_processor("vqa")
+class VQATextProcessor(BaseProcessor):
+    def __init__(self):
+        self.prompt_template = [
+            "$question",
+            "Question: $question Answer:",
+            "$question A short answer to the question is",
+            "Q: $question A:",
+            "Question: $question Short answer:",
+            "Given the image, answer the following question. $question",
+            "Based on the image, respond to this question with a short answer: $question. Answer:",
+            "Use the provided image to answer the question: $question Provide your answer as short as possible:",
+            "What is the answer to the following question? $question",
+            "The question '$question' can be answered using the image. A short answer is"
+        ]
+        self.prompt_template = [Template(s) for s in self.prompt_template]
+
+        """
+        <prompt>
+        QUESTION: ....
+        CHOICES: ....
+        ANSWER: ...
+        """
+        self.choice_prompt_template = [
+            "Given the image, answer the following question.\n",
+            "Based on the image, respond to this question with a short answer.\n",
+            "Use the provided image to answer the question.\n",
+            "What is the answer to the following question?\n"
+        ]
+
+    def __call__(self, question, answer, choice_txt=None):
+
+        # good sentence ends with '.'
+        if answer[-1] != '.':
+            answer += '.'
+
+        if choice_txt is not None:
+            choice_txt = choice_txt.strip()
+            prompt = random.choice(self.choice_prompt_template)
+            question = "QUESTION: " + question + '\n'
+            choice_txt = "CHOICES: " + choice_txt + '\n'
+            mask_text = prompt + question + choice_txt + '### Assistant: '
+            qa_text = mask_text + 'ANSWER: ' + answer
+
+            # mask_text = prompt + question + choice_txt + '### Assistant: ' + 'ANSWER: '
+            # qa_text = mask_text + answer
+        else:
+            question = random.choice(self.prompt_template).substitute(question=question)
+            mask_text = question + '\n' + '### Assistant: '
+            qa_text = mask_text + answer
+
+        return mask_text, qa_text

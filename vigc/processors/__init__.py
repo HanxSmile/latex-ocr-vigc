@@ -17,6 +17,7 @@ from vigc.processors.blip_processors import (
 from vigc.processors.vqa_processors import (
     ScienceQATextProcessor,
     ConversationTextProcessor,
+    VQATextProcessor
 )
 
 from vigc.common.registry import registry
@@ -31,6 +32,7 @@ __all__ = [
     # Intern-v0
     "ScienceQATextProcessor",
     "ConversationTextProcessor",
+    "VQATextProcessor"
 ]
 
 
