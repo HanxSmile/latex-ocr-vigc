@@ -2,7 +2,7 @@ import gradio as gr
 import torch
 import argparse
 from vigc.common.config import Config
-import vigc.tasks as tasks
+from vigc.common.registry import registry
 from vigc.processors import BlipImageEvalProcessor
 
 
@@ -10,6 +10,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Training")
 
     parser.add_argument("--cfg-path", required=True, help="path to configuration file.")
+    parser.add_argument("--device", default="0")
+    parser.add_argument("--ckpt", required=True)
     parser.add_argument(
         "--options",
         nargs="+",
@@ -26,14 +28,16 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    cfg = Config(parse_args())
-    task = tasks.setup_task(cfg)
-
+    args = parse_args()
+    cfg = Config(args)
+    model_config = cfg.model_cfg
+    model_cls = registry.get_model_class(model_config.arch)
     print('Loading model...')
-    device = torch.device(f"cuda:{cfg.run_cfg.device}") if torch.cuda.is_available() else "cpu"
-    model = task.build_model(cfg).to(device)
+    device = torch.device(f"cuda:{args.device}") if torch.cuda.is_available() else "cpu"
+    model = model_cls.from_config(model_config)
+    model.load_checkpoint(args.ckpt)
+    model = model.to(device)
     vis_processors = BlipImageEvalProcessor(image_size=224)
-
     print('Loading model done!')
 
     image_input = gr.Image(type="pil")
