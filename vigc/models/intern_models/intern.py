@@ -881,6 +881,7 @@ conversation
         image = samples["image"].to(self.device)
         txt_prompt = samples["prompt"]
 
+        self.use_meta = True
         if self.use_meta:
             img_prompt = meta_instruction + ' <|Human|>:<ImageHere> '
         else:
@@ -888,7 +889,7 @@ conversation
 
         prompts = [img_prompt + _ + self.eoh + ' <|Assistant|>:' for _ in txt_prompt]
 
-        img_embeds, _ = self.model.encode_img(image)
+        img_embeds, _ = self.encode_img(image)
 
         prompt_segs = [prompt.split('<ImageHere>') for prompt in prompts]
         prompt_seg_tokens = [[
