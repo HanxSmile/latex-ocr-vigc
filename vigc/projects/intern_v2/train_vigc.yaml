@@ -1,5 +1,5 @@
 model:
-  arch: intern_v0
+  arch: intern_v2
   model_type: pretrain_vicuna
   freeze_vit: True
   low_resources: False
@@ -17,12 +17,16 @@ model:
   max_txt_len: 384
   end_sym: "###"
   mask_human: True
-  only_load_qformer: True
+  only_load_qformer: False
+  merge_lora: True
+  merge_lora_scale: 2
+  quant_pretrain: True
   prompt_path: "prompts/alignment.txt"
   prompt_template: '### Human: {} \n### Assistant: '
   #ckpt: '/mnt/petrelfs/zhaozhiyuan/mllm/MiniGPT-4/pretrained_minigpt4_stage1.pth'
   7132k:
-    ckpt: '/mnt/petrelfs/share_data/zhangpan/mllm/model/convert2minigpt4/032/mllm_7BF/mixv6_wm.pth'
+    ckpt: '/mnt/petrelfs/share_data/zhangpan/mllm/model/convert2minigpt4/036/mllm_7BF_x2_io/mixv6_wm.pth'
+
 
 datasets:
   ########################
@@ -46,7 +50,7 @@ datasets:
     text_processor:
       train:
         name: "science_qa"
-        input_format: "QCM-ALE"
+        input_format: "QCM-A"
         rotate: True
     sample_ratio: 17
 
@@ -59,9 +63,30 @@ datasets:
     text_processor:
       train:
         name: "science_qa"
-        input_format: "QCM-ALE"
+        input_format: "QCM-A"
         rotate: True
     sample_ratio: 7
+
+  vsr_vr:
+    vis_processor:
+      train:
+        name: "blip_image_eval"
+        image_size: 224
+    text_processor:
+      train:
+        name: "vqa"
+    sample_ratio: 7
+
+  vqav2_conv:
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "conversation"
+        header: "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the human's questions."
+    sample_ratio: 30
 
   llava_instruct150k:
     vis_processor:
@@ -73,6 +98,7 @@ datasets:
         name: "conversation"
         header: "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the human's questions."
     sample_ratio: 30
+
 
   ## Llava 150k instruct VIG
   intern_llava_comp_vig:
@@ -119,7 +145,7 @@ run:
   accum_grad_iters: 8
 
   weight_decay: 0.05
-  max_iters: 29952  #14976
+  max_iters: 14976
   iters_per_inner_epoch: 2496
   batch_size_train: 8
   batch_size_eval: 1
@@ -128,16 +154,15 @@ run:
   distributed_type: ddp
 
   seed: 42
-  output_dir: "output/instruct/intern_032_0816"
+  output_dir: "output/intern_v2_bard_exp/baseline"
 
   amp: True
   resume_ckpt_path: null
 
-  evaluate: False 
+  evaluate: False
   train_splits: ["train"]
 
   device: "cuda"
   world_size: 1
   dist_url: "env://"
   distributed: True
-

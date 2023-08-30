@@ -815,6 +815,24 @@ conversation
             atts_img = torch.cat([atts_img, to_regress_tokens.attention_mask], dim=1)
             wrapped_target = torch.cat([wrapped_target, targets], dim=1)
 
+        elif samples['data_type'][0] == "vigc":
+            for i in range(batch_size):
+                prompt = samples["prompt"][i]
+                text_input = samples["text_input"][i]
+                temp = f"{prompt} \n### Assistant: {text_input}"
+                samples["text_input"][i] = temp
+
+            img_embeds, atts_img = self.encode_img(image, samples["prompt"])
+            prompt = ' <|User|>:<Img><ImageHere></Img>'
+            img_embeds, atts_img, wrapped_target = self.prompt_wrap(img_embeds, atts_img, prompt)
+            text = self.align_text(samples)
+            to_regress_tokens, targets = self.text2emb(text, samples['data_type'][0])
+
+            to_regress_embeds = self.llama_model.model.embed_tokens(to_regress_tokens.input_ids)
+            img_embeds = torch.cat([img_embeds, to_regress_embeds], dim=1)
+            atts_img = torch.cat([atts_img, to_regress_tokens.attention_mask], dim=1)
+            wrapped_target = torch.cat([wrapped_target, targets], dim=1)
+
         #### zhihu interleaved data
         elif samples['data_type'][0] == 'interleav':
             img_embeds, atts_img = self.encode_img(image)
