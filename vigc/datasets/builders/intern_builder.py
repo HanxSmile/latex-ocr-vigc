@@ -11,6 +11,7 @@ from vigc.datasets.datasets.intern_datasets.science_qa_dataset import ScienceQAD
 from vigc.datasets.datasets.intern_datasets.llava_instruct150k_dataset import LLavaInstruct150kDataset
 from vigc.datasets.datasets.intern_datasets.gqa_conversation_datasets import GQA_Conv_Dataset
 from vigc.datasets.datasets.intern_datasets.vr_datasets import VSRVRDataset
+from vigc.datasets.datasets.intern_datasets.coco_pseudo_dataset import COCO_Pseudo_Dataset
 
 
 @registry.register_builder("cc_sbu_align")
@@ -211,6 +212,38 @@ class GQAVRBuilder(BaseDatasetBuilder):
             vis_root=vis_root,
             anno_path=ann_paths,
             det_res=build_info.get('det_res', None),
+        )
+        datasets['train'][0]
+
+        return datasets
+
+
+@registry.register_builder("pseudo_coco")
+class InternPseudoCOCOBuilder(BaseDatasetBuilder):
+    train_dataset_cls = COCO_Pseudo_Dataset
+
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/coco_pseudo/intern_default.yaml",
+    }
+
+    def build_datasets(self):
+        # at this point, all the annotations and image/videos should be all downloaded to the specified locations.
+        logging.info(f"Building COCO Pseudo for Intern...")
+        self.build_processors()
+
+        build_info = self.config.build_info
+        ann_path = self.config.annotation,
+        vis_root = build_info.images
+
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.train_dataset_cls
+        datasets['train'] = dataset_cls(
+            vis_processor=self.vis_processors["train"],
+            text_processor=self.text_processors["train"],
+            vis_root=vis_root,
+            anno_path=ann_path,
         )
         datasets['train'][0]
 

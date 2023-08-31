@@ -53,7 +53,8 @@ from vigc.datasets.builders.intern_builder import (
     ScienceQABuilder,
     LLavaInstruct150kBuilder,
     VQAv2_Conv_Builder,
-    GQAVRBuilder
+    GQAVRBuilder,
+    InternPseudoCOCOBuilder
 )
 
 from vigc.datasets.builders.intern_vigc_builder import *
@@ -96,7 +97,8 @@ __all__ = [
     "ScienceQABuilder",
     "LLavaInstruct150kBuilder",
     "VQAv2_Conv_Builder",
-    "GQAVRBuilder"
+    "GQAVRBuilder",
+    "InternPseudoCOCOBuilder",
 ]
 
 
