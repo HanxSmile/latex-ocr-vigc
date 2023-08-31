@@ -1013,8 +1013,9 @@ conversation
                                                       add_special_tokens=False)
             output_text = output_text.split(self.eoa)[0]
             output_text = output_text.split('<|Assistant|>')[-1].strip()
-            print(output_text)
+
             res.append(output_text)
+        print(res[0])
         return res
 
     @torch.no_grad()
