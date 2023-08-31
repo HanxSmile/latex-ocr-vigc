@@ -47,7 +47,7 @@ datasets:
 run:
   runner: runner_iter
   task: intern_vig
-  llava_task: desc
+  llava_task: comp
   batch_size_eval: 8
   num_workers: 4
 
