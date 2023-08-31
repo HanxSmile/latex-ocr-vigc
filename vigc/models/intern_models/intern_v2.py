@@ -13,7 +13,7 @@ from vigc.models.intern_models.blip2 import Blip2Base, disabled_train
 from vigc.models.intern_models.hf_convert_llama import LlamaTokenizer as PyTokenizer
 from vigc.models.intern_models.modeling_llama import LlamaForCausalLM
 from vigc.models.intern_models.lora import LoRALinear
-from transformers import LlamaTokenizer, AutoTokenizer
+from transformers import LlamaTokenizer
 from transformers.models.llama.configuration_llama import LlamaConfig
 import transformers
 
@@ -22,12 +22,13 @@ transformers.logging.set_verbosity_error()
 from transformers import StoppingCriteriaList
 from .intern import StoppingCriteriaSub
 
-import sys
-import re
+meta_instruction = """meta instruction
+You are an AI assistant whose name is 浦语.
+- 浦语 is a conversational language model that is developed by Shanghai AI Laboratory (上海人工智能实验室). It is designed to be helpful, honest, and harmless.
+- 浦语 can understand and communicate fluently in the language chosen by the user such as English and 中文.
+conversation
+"""
 
-
-# import os
-# os.environ['CURL_CA_BUNDLE'] = ''
 
 def merge_lora_func(model, model_ckpt, scale, path):
     print(f"Merge lora weight from {path}")
@@ -932,6 +933,89 @@ conversation
                  "loss_l": loss_l,
                }
         '''
+
+    def caption_generate(
+            self,
+            samples,
+            use_nucleus_sampling=False,
+            num_beams=5,
+            max_length=256,
+            min_length=1,
+            top_p=0.9,
+            repetition_penalty=1.5,
+            length_penalty=1,
+            num_captions=1,
+            temperature=1,
+    ):
+
+        image = samples["image"].to(self.device)
+        txt_prompt = samples["prompt"]
+
+        self.use_meta = True
+        if self.use_meta:
+            img_prompt = meta_instruction + ' <|Human|>:<ImageHere> '
+        else:
+            img_prompt = ' <|Human|>:<ImageHere> '
+
+        prompts = [img_prompt + _ + self.eoh + ' <|Assistant|>:' for _ in txt_prompt]
+
+        img_embeds, _ = self.encode_img(image)
+
+        prompt_segs = [prompt.split('<ImageHere>') for prompt in prompts]
+        prompt_seg_tokens = [[
+            self.llama_tokenizer(seg,
+                                 return_tensors='pt',
+                                 add_special_tokens=i == 0).
+                to(self.llama_model.model.embed_tokens.weight.device).input_ids
+            for i, seg in enumerate(prompt_seg)
+        ] for prompt_seg in prompt_segs]
+
+        prompt_seg_embs = [[
+            self.llama_model.model.embed_tokens(seg)
+            for seg in prompt_seg_token
+        ] for prompt_seg_token in prompt_seg_tokens]
+
+        first_prompt_seg_embeds = [
+            prompt_seg_embed[0] for prompt_seg_embed in prompt_seg_embs
+        ]
+        first_prompt_seg_embeds = torch.cat(first_prompt_seg_embeds, dim=0)
+        second_prompt_seg_embeds = [
+            prompt_seg_embed[1] for prompt_seg_embed in prompt_seg_embs
+        ]
+        second_prompt_seg_embeds = torch.cat(second_prompt_seg_embeds, dim=0)
+
+        prompt_seg_embs = [
+            first_prompt_seg_embeds, img_embeds, second_prompt_seg_embeds
+        ]
+        prompt_embs = torch.cat(prompt_seg_embs, dim=1)
+
+        # generate output
+        outputs = self.llama_model.generate(
+            inputs_embeds=prompt_embs,
+            max_length=max_length,
+            num_beams=num_beams,
+            min_length=min_length,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            length_penalty=length_penalty,
+            temperature=temperature,
+            eos_token_id=self.llama_tokenizer.eos_token_id,
+            num_return_sequences=num_captions,
+            do_sample=use_nucleus_sampling,
+        )
+        res = []
+        for i, output in enumerate(outputs):
+            if output[0] == 0:
+                output = output[1:]
+            if output[0] == 1:
+                output = output[1:]
+            output_text = self.llama_tokenizer.decode(output,
+                                                      add_special_tokens=False)
+            output_text = output_text.split(self.eoa)[0]
+            output_text = output_text.split('<|Assistant|>')[-1].strip()
+            print(output_text)
+            res.append(output_text)
+        return res
 
     @torch.no_grad()
     def generate(
