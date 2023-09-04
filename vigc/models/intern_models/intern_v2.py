@@ -232,7 +232,7 @@ class Intern_v2(Blip2Base):
         print('Loading LLAMA')
 
         if self.use_7132k:
-            self.llama_tokenizer = PyTokenizer.from_pretrained("/mnt/petrelfs/share_data/yanhang/tokenizes/V7.model")
+            self.llama_tokenizer = PyTokenizer.from_pretrained("/mnt/petrelfs/share_data/zhangpan/mllm/tokenizes/V7.model")
             self.flag_image_start = nn.Parameter(torch.zeros([1, 1, 4096]))
             self.flag_image_end = nn.Parameter(torch.zeros([1, 1, 4096]))
             self.flag_image_start.requires_grad = False
