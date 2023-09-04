@@ -1,7 +1,12 @@
 import logging
 from vigc.common.registry import registry
 from vigc.datasets.builders.base_dataset_builder import BaseDatasetBuilder
-from vigc.datasets.datasets.vic_eval import A_OKVQAEvalDataset, VQAv2EvalDataset, A_OKVQATestDataset
+from vigc.datasets.datasets.vic_eval import (
+    A_OKVQAEvalDataset,
+    VQAv2EvalDataset,
+    A_OKVQATestDataset,
+)
+from vigc.datasets.datasets.intern_datasets.llava_vqa_eval import LLaVAVQATestDataset
 
 
 @registry.register_builder("instruct_blip_aokvqa_eval")
@@ -125,6 +130,44 @@ class OKVQAEvalBuilder(BaseDatasetBuilder):
             text_processor=self.text_processors["eval"],
             vis_root=vis_root,
             anno_file=anno_path
+        )
+        _ = datasets['eval'][0]
+
+        return datasets
+
+
+@registry.register_builder("llava_vqa90_test")
+class LLaVAVQATestBuilder(BaseDatasetBuilder):
+    eval_dataset_cls = LLaVAVQATestDataset
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/llava_instruct150k/llava_vqa90_test.yaml"
+    }
+
+    def __init__(self, cfg=None):
+        if cfg:
+            self.with_instruction = cfg.get("with_instruction", True)
+        else:
+            self.with_instruction = True
+        super().__init__(cfg)
+
+    def build_datasets(self):
+        logging.info("Building LLaVA VQA-90 Test datasets ...")
+        self.build_processors()
+
+        build_info = self.config.build_info
+        anno_path = build_info.annotation,
+        vis_root = build_info.images
+
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.eval_dataset_cls
+        datasets['eval'] = dataset_cls(
+            vis_processor=self.vis_processors["eval"],
+            text_processor=self.text_processors["eval"],
+            vis_root=vis_root,
+            anno_file=anno_path,
+            with_instruction=self.with_instruction,
         )
         _ = datasets['eval'][0]
 

@@ -934,6 +934,92 @@ conversation
                }
         '''
 
+    @torch.no_grad()
+    def vqa_generate(self, samples):
+        self.llama_tokenizer.padding_side = 'left'
+
+        image = samples["image"].to(self.device)
+        questions = samples["prompt"]
+        self.use_meta = True
+        if self.use_meta:
+            img_prompt = meta_instruction + ' <|Human|>:<ImageHere> '
+        else:
+            img_prompt = ' <|Human|>:<ImageHere> '
+        # questions = [
+        #     self.txt_prompt.format(question) for question in questions
+        # ]
+
+        prompts = [
+            img_prompt + question + self.eoh + ' <|Assistant|>:' for question in questions
+        ]
+
+        img_embeds, img_attns = self.encode_img(image)
+
+        prompt_segs = [prompt.split('<ImageHere>') for prompt in prompts]
+        first_prompt_segs = [prompt_seg[0] for prompt_seg in prompt_segs]
+        second_prompt_segs = [prompt_seg[1] for prompt_seg in prompt_segs]
+
+        first_prompt_seg_res = self.llama_tokenizer(
+            first_prompt_segs, return_tensors='pt',
+            add_special_tokens=True).to(self.llama_model.device)
+        second_prompt_seg_res = self.llama_tokenizer(
+            second_prompt_segs,
+            return_tensors='pt',
+            add_special_tokens=False,
+            padding='longest',
+            truncation=True,
+            max_length=32).to(self.llama_model.device)
+        first_prompt_seg_tokens = first_prompt_seg_res.input_ids
+        second_prompt_seg_tokens = second_prompt_seg_res.input_ids
+
+        first_prompt_seg_embeds = self.llama_model.model.embed_tokens(
+            first_prompt_seg_tokens)
+        second_prompt_seg_embeds = self.llama_model.model.embed_tokens(
+            second_prompt_seg_tokens)
+
+        prompt_seg_embs = [
+            first_prompt_seg_embeds, img_embeds, second_prompt_seg_embeds
+        ]
+        prompt_embs = torch.cat(prompt_seg_embs, dim=1)
+        attn_masks = torch.cat([
+            first_prompt_seg_res.attention_mask, img_attns,
+            second_prompt_seg_res.attention_mask
+        ],
+            dim=1)
+
+        # generate output
+        outputs = self.llama_model.generate(
+            inputs_embeds=prompt_embs,
+            attention_mask=attn_masks,
+            do_sample=False,
+            max_length=50,
+            num_beams=5,
+            min_length=1,
+            length_penalty=-1.0,
+            eos_token_id=self.llama_tokenizer.eos_token_id)
+        res = []
+        outputs[outputs == -1] = 1  # debug
+        for i, output in enumerate(outputs):
+            if output[0] == 0:
+                output = output[1:]
+            if output[0] == 1:
+                output = output[1:]
+            output_text = self.llama_tokenizer.decode(output,
+                                                      add_special_tokens=False)
+
+            output_text = output_text.split(self.eoa)[0]
+            output_text = output_text.split('</s>')[0]
+            output_text = output_text.split('<|Assistant|>')[-1].strip()
+            output_text = output_text.replace('|', '')
+            output_text = output_text.replace('>', '')
+            output_text = output_text.replace(':', '')
+            # if output_text[-1] == '.':
+            #    output_text = output_text[:-1]
+            output_text = output_text.strip()
+            res.append(output_text)
+            print(output_text)
+        return res
+
     def caption_generate(
             self,
             samples,
@@ -1003,6 +1089,7 @@ conversation
             num_return_sequences=num_captions,
             do_sample=use_nucleus_sampling,
         )
+        outputs[outputs == -1] = 1  # debug
         res = []
         for i, output in enumerate(outputs):
             if output[0] == 0:

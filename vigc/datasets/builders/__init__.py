@@ -14,6 +14,7 @@ from vigc.datasets.builders.vic_eval_builder import (
     AOKVQAEvalBuilder,
     VQAv2EvalBuilder,
     OKVQAEvalBuilder,
+    LLaVAVQATestBuilder
 )
 
 from vigc.datasets.builders.vig_builder import (
@@ -99,6 +100,7 @@ __all__ = [
     "VQAv2_Conv_Builder",
     "GQAVRBuilder",
     "InternPseudoCOCOBuilder",
+    "LLaVAVQATestBuilder",
 ]
 
 
