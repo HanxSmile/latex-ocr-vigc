@@ -71,7 +71,7 @@ class LLaVAVQATestTask(BaseTask):
     def after_evaluation(self, val_result, split_name, epoch, **kwargs):
         self.save_result(
             result=val_result,
-            result_dir=os.path.dirname(os.path.dirname(registry.get_path("result_dir"))),
+            result_dir=registry.get_path("result_dir"),
             filename=self.file_name,
             remove_duplicate="question_id",
             sort_key="question_id",
