@@ -232,7 +232,8 @@ class Intern_v2(Blip2Base):
         print('Loading LLAMA')
 
         if self.use_7132k:
-            self.llama_tokenizer = PyTokenizer.from_pretrained("/mnt/petrelfs/share_data/zhangpan/mllm/tokenizes/V7.model")
+            self.llama_tokenizer = PyTokenizer.from_pretrained(
+                "/mnt/petrelfs/share_data/zhangpan/mllm/tokenizes/V7.model")
             self.flag_image_start = nn.Parameter(torch.zeros([1, 1, 4096]))
             self.flag_image_end = nn.Parameter(torch.zeros([1, 1, 4096]))
             self.flag_image_start.requires_grad = False
@@ -935,7 +936,19 @@ conversation
         '''
 
     @torch.no_grad()
-    def vqa_generate(self, samples):
+    def vqa_generate(
+            self,
+            samples,
+            use_nucleus_sampling=False,
+            num_beams=5,
+            max_length=256,
+            min_length=1,
+            top_p=0.9,
+            repetition_penalty=1.5,
+            length_penalty=1,
+            num_captions=1,
+            temperature=1,
+    ):
         self.llama_tokenizer.padding_side = 'left'
 
         image = samples["image"].to(self.device)
@@ -991,12 +1004,17 @@ conversation
         outputs = self.llama_model.generate(
             inputs_embeds=prompt_embs,
             attention_mask=attn_masks,
-            do_sample=False,
-            max_length=50,
-            num_beams=5,
-            min_length=1,
-            length_penalty=-1.0,
-            eos_token_id=self.llama_tokenizer.eos_token_id)
+            max_length=max_length,
+            num_beams=num_beams,
+            min_length=min_length,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            length_penalty=length_penalty,
+            temperature=temperature,
+            eos_token_id=self.llama_tokenizer.eos_token_id,
+            num_return_sequences=num_captions,
+            do_sample=use_nucleus_sampling,
+        )
         res = []
         outputs[outputs == -1] = 1  # debug
         for i, output in enumerate(outputs):
