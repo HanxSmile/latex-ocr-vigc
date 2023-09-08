@@ -3,8 +3,42 @@ import json
 from threading import Thread
 from collections import defaultdict
 import re
-import tqdm
+from tqdm import tqdm
 import time
+from torch.utils.data import Dataset, DataLoader
+
+
+class HitWordDataset(Dataset):
+    def __init__(self, anno_path, unsafe_words_anno_path):
+        with open(unsafe_words_anno_path, 'r') as f:
+            hit_words = f.readlines()
+
+        unsafe_words = []
+        for hit in hit_words:
+            hit = json.loads(hit)
+            unsafe_words.append(hit['word'])
+        self.unsafe_words = unsafe_words
+        self.compile_unsafe_words = [re.compile(_) for _ in self.unsafe_words]
+
+        with open(os.path.join(anno_path), 'r') as f:
+            self.inner_dataset = f.readlines()
+
+    def __len__(self):
+        return len(self.inner_dataset)
+
+    def __getitem__(self, index):
+        data = json.loads(self.inner_dataset[index])
+        res = {"raw_data": data, "index": index, "high_hit_word": None}
+        for hit_word, compile_unsafe_word in zip(self.unsafe_words, self.compile_unsafe_words):
+            result_search = re.search(compile_unsafe_word, data["content"])
+            # print(result_search)
+            if result_search:
+                res['high_hit_word'] = hit_word
+                break
+        return res
+
+    def collater(self, batch):
+        return batch
 
 
 def find_doc(work_dir, file_name, save_dir, unsafe_words):

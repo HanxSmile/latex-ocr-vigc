@@ -52,7 +52,7 @@ class HitWordDataset(Dataset):
     def __getitem__(self, index):
         ds_id, data_id = self._get_index(index)
         file_name = self.inner_dataset_names[ds_id]
-        data = json.loads(self.inner_dataset_contents[ds_id][data_id])["content"]
+        data = json.loads(self.inner_dataset_contents[ds_id][data_id])
         res = {"raw_data": data, "file_name": file_name, "index": data_id, "uid": f"{file_name}_{data_id}",
                "high_hit_word": None}
         for hit_word, compile_unsafe_word in zip(self.unsafe_words, self.compile_unsafe_words):
