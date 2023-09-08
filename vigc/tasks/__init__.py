@@ -14,6 +14,7 @@ from vigc.tasks.vqg_test import InstructBlipVQGTask
 from vigc.tasks.image_text_pretrain import ImageTextPretrainTask
 from vigc.tasks.intern_vig import InternVIGTask
 from vigc.tasks.llava_vqa_test import LLaVAVQATestTask
+from vigc.tasks.dummy_task.hit_word_task import HitWordInferTask
 
 
 def setup_task(cfg):
@@ -35,4 +36,5 @@ __all__ = [
     "ImageTextPretrainTask",
     "InternVIGTask",
     "LLaVAVQATestTask",
+    "HitWordInferTask"
 ]

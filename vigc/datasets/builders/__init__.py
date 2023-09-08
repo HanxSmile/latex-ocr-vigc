@@ -59,6 +59,7 @@ from vigc.datasets.builders.intern_builder import (
 )
 
 from vigc.datasets.builders.intern_vigc_builder import *
+from vigc.datasets.builders.dummy_builders.hit_word_builder import HitWordEvalBuilder
 
 __all__ = [
     # "AOKVQA_Train_Builder",

@@ -1,0 +1,28 @@
+model:
+  arch: blip2_vicuna_instruct
+  model_type: minigpt4_vicuna7b
+  finetuned: "/mnt/petrelfs/share_data/wangbin/mllm/vigc/models/minigpt4_7b_best.pth"
+
+datasets:
+  hit_word_data: # name of the dataset builder
+    work_dir: /mnt/petrelfs/share_data/wangbin/mllm/sz_unsafe/xiaohongshu/
+    unsafe_words_anno_path: /mnt/petrelfs/share_data/ouyanglinke/clean_data/common/high.jsonl
+
+
+run:
+  runner: runner_iter
+  task: hit_word_infer_task
+
+  batch_size_eval: 256
+  num_workers: 8
+
+  seed: 42
+  output_dir: "./result/hit_word"
+
+  evaluate: True
+  test_splits: [ "eval" ]
+
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
