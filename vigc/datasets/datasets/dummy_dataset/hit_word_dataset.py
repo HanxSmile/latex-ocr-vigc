@@ -2,6 +2,7 @@ import re
 import os
 import json
 from torch.utils.data import Dataset
+from tqdm.auto import tqdm
 
 
 class HitWordDataset(Dataset):
@@ -19,14 +20,15 @@ class HitWordDataset(Dataset):
         self.compile_unsafe_words = [re.compile(_) for _ in self.unsafe_words]
 
         if indices is not None:
-            with open(indices) as indices_f:
-                indices = json.load(indices_f)
+            if isinstance(indices, str):
+                with open(indices) as indices_f:
+                    indices = json.load(indices_f)
             json_list = [json_list[_] for _ in indices]
         self.inner_dataset_names = []
         self.inner_dataset_contents = []
         self.inner_dataset_nums = []
         self.inner_dataset_cumnums = []
-        for file in json_list:
+        for file in tqdm(json_list):
             anno_path = os.path.join(work_dir, file)
             with open(os.path.join(anno_path), 'r') as f:
                 this_data = f.readlines()
