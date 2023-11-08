@@ -1,15 +1,15 @@
 import os
 import json
-from threading import Thread
-from collections import defaultdict
 import re
 from tqdm import tqdm
-import time
 from torch.utils.data import Dataset, DataLoader
+import jsonlines
+import argparse
 
 
 class HitWordDataset(Dataset):
-    def __init__(self, anno_path, unsafe_words_anno_path):
+    def __init__(self, anno_path,
+                 unsafe_words_anno_path='/mnt/petrelfs/share_data/ouyanglinke/clean_data/common/high.jsonl'):
         with open(unsafe_words_anno_path, 'r') as f:
             hit_words = f.readlines()
 
@@ -28,100 +28,82 @@ class HitWordDataset(Dataset):
 
     def __getitem__(self, index):
         data = json.loads(self.inner_dataset[index])
-        res = {"raw_data": data, "index": index, "high_hit_word": None}
+        result = None
         for hit_word, compile_unsafe_word in zip(self.unsafe_words, self.compile_unsafe_words):
             result_search = re.search(compile_unsafe_word, data["content"])
             # print(result_search)
             if result_search:
-                res['high_hit_word'] = hit_word
+                data['high_hit_word'] = hit_word
+                result = data
                 break
-        return res
+        return result
 
     def collater(self, batch):
         return batch
 
 
-def find_doc(work_dir, file_name, save_dir, unsafe_words):
-    print(f'Start to open {file_name}')
-    with open(os.path.join(work_dir, file_name), 'r') as f:
-        xiaohongshu = f.readlines()
+def run(
+        save_dir,
+        work_dir='/mnt/petrelfs/share_data/wangbin/mllm/sz_unsafe/xiaohongshu/',
+        indices=None,
+        batch_size=256,
+        num_workers=8,
+):
+    json_list = os.listdir(work_dir)
+    json_list = sorted([_ for _ in json_list if _.endswith(".jsonl")])
+    json_list = [json_list[_] for _ in indices if _ < len(json_list)]
 
-    final_data = []
-    file_len = len(xiaohongshu)
-    print(f'{file_name} len is {file_len}')
-    BLOCK_block_dict = defaultdict(int)
-    for data in tqdm.tqdm(xiaohongshu, desc=f"Procesing {file_name}"):
-        data = json.loads(data)
-        content = data['content']
-        # print(content)
-        for hit_word in unsafe_words:
-            result_search = re.search(hit_word, content)
-            # print(result_search)
-            if result_search:
-                BLOCK_block_dict[hit_word] += 1
-                data['high_hit_word'] = hit_word
-                final_data.append(data)
-                break
+    for file_name in tqdm(json_list, desc="Parsing data"):
+        anno_path = os.path.join(work_dir, file_name)
+        dst_path = os.path.join(save_dir, file_name.split('.')[0] + '_hits.jsonl')
+        dst_statistic_path = os.path.join(save_dir, file_name.split('.')[0] + '_hits_statistic.txt')
+        if os.path.isfile(dst_path):
+            os.remove(dst_path)
+        if os.path.isfile(dst_statistic_path):
+            os.remove(dst_statistic_path)
+        dataset = HitWordDataset(anno_path)
+        statistic_info = {k: 0 for k in dataset.unsafe_words}
+        dataloader = DataLoader(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=dataset.collater,
+            drop_last=False
+        )
 
-    text = ""
-    for key, item in BLOCK_block_dict.items():
-        text += f"{key}: {item}\n"
+        with jsonlines.open(dst_path, mode="a") as writer:
+            for batch in tqdm(dataloader, desc="parsing"):
+                for data in batch:
+                    if data is None:
+                        continue
+                    writer.write(data)
+                    statistic_info[data["high_hit_word"]] += 1
 
-    with open(os.path.join(save_dir, file_name.split('.')[0] + '_hits.json'), 'w', encoding="utf-8") as f:
-        json.dump(final_data, f, ensure_ascii=False)
+        text = ""
+        for key, item in statistic_info.items():
+            text += f"{key}: {item}\n"
 
-    with open(os.path.join(save_dir, file_name.split('.')[0] + '_hits_statistic.txt'), 'w', encoding="utf-8") as f:
-        f.write(text)
+        with open(dst_statistic_path, 'w', encoding="utf-8") as f:
+            f.write(text)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Training")
+    parser.add_argument("--seg-index", required=True, type=int)
+    parser.add_argument("--save-dir", required=True, type=str)
+    args = parser.parse_args()
+
+    return args
 
 
 if __name__ == "__main__":
     work_dir = '/mnt/petrelfs/share_data/wangbin/mllm/sz_unsafe/xiaohongshu/'
     json_list = os.listdir(work_dir)
-    save_dir = '/mnt/petrelfs/ouyanglinke/clean_data/xiaohongshu/'
-
-    with open('/mnt/petrelfs/share_data/ouyanglinke/clean_data/common/high.jsonl', 'r') as f:
-        hit_words = f.readlines()
-
-    unsafe_words = []
-    for hit in hit_words:
-        hit = json.loads(hit)
-        unsafe_words.append(hit['word'])
-
-    find_doc(work_dir, json_list[0], save_dir, unsafe_words)
-    # t0 = Thread(target=find_doc, args=(work_dir, json_list, save_dir, unsafe_words))
-    # t1 = Thread(target=find_doc, args=(work_dir, json_list, save_dir, unsafe_words))
-    # t2 = Thread(target=find_doc, args=(work_dir, json_list[2], save_dir))
-    # t3 = Thread(target=find_doc, args=(work_dir, json_list[3], save_dir))
-    # t4 = Thread(target=find_doc, args=(work_dir, json_list[4], save_dir))
-    # t5 = Thread(target=find_doc, args=(work_dir, json_list[5], save_dir))
-    # t6 = Thread(target=find_doc, args=(work_dir, json_list[6], save_dir))
-    # t7 = Thread(target=find_doc, args=(work_dir, json_list[7], save_dir))
-    # t8 = Thread(target=find_doc, args=(work_dir, json_list[8], save_dir))
-    # t9 = Thread(target=find_doc, args=(work_dir, json_list[9], save_dir))
-
-    # 启动线程运行
-    t0.start()
-    t1.start()
-    # t2.start()
-    # t3.start()
-    # t4.start()
-    # t5.start()
-    # t6.start()
-    # t7.start()
-    # t8.start()
-    # t9.start()
-
-    # 等待所有线程执行完毕,join() 等待线程终止，要不然一直挂起
-    t0.join()
-    t1.join()
-    # t2.join()
-    # t3.join()
-    # t4.join()
-    # t5.join()
-    # t6.join()
-    # t7.join()
-    # t8.join()
-    # t9.join()
-
-    print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-    print("Finished")
+    json_list = sorted([_ for _ in json_list if _.endswith(".jsonl")])
+    total_file_nums = len(json_list)
+    all_indices = list(range(total_file_nums))
+    seg_nums = 8
+    indices = [all_indices[_::seg_nums] for _ in range(seg_nums)]
+    args = parse_args()
+    run(save_dir=args.save_dir, indices=indices[args.seg_index])
