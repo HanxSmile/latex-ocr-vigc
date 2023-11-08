@@ -27,7 +27,7 @@ model:
   7132k:
     ckpt: '/mnt/petrelfs/share_data/zhangpan/mllm/model/convert2minigpt4/036/mllm_7BF_x2_io/mixv6_wm.pth'
 
-  ckpt: "/mnt/petrelfs/hanxiao/work/vigc/vigc/output/intern_v2_bard_exp/baseline/20230830143/checkpoint_latest.pth"  # finetune 权重
+  ckpt: "/mnt/petrelfs/hanxiao/work/vigc/vigc/output/intern_v2_bard_exp/baseline/20230829110/checkpoint_latest.pth"  # finetune 权重
 
 
 datasets:
@@ -51,7 +51,7 @@ run:
   distributed_type: ddp
 
   seed: 42
-  output_dir: output/results/llava_vqa_test/intern_v2
+  output_dir: output/llava_vqa_test/intern_v2
 
   amp: True
   resume_ckpt_path: null

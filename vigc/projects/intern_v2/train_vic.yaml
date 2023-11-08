@@ -102,7 +102,9 @@ datasets:
 
   ## COCO PSEUDO
   pseudo_coco:
-    annotation: "/mnt/petrelfs/hanxiao/working/intern/desc_question_answer.json"
+    # annotation: "/mnt/lustre/hanxiao/working/intern/desc_and_comp_question_answer.json"
+    annotation: "/mnt/lustre/hanxiao/work/vigc/vigc/output/intern_v2_bard_exp/baseline/20230904154/result/question.json"
+    # annotation: "/mnt/petrelfs/hanxiao/working/intern/desc_question_answer.json"
 #    annotation: "/mnt/petrelfs/hanxiao/working/intern/comp_question_answer.json"
     vis_processor:
       train:
