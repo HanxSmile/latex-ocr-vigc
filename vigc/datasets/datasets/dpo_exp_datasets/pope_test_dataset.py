@@ -6,7 +6,8 @@ import torch
 
 class POPETestDataset(BaseDataset):
     PROMPTS = (
-        "Question: {q} Short answer:",
+        # "Question: {q} Short answer:",
+        "{q}",
     )
 
     def __init__(self, vis_processor, text_processor, vis_root, anno_file):
