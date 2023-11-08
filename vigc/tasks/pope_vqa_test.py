@@ -63,8 +63,7 @@ class InstructBlipPopeTestTask(BaseTask):
                 answer = answer.strip()
             this_sample["id"] = raw_sample["question_id"]
             this_sample["question"] = raw_sample["text"]
-            this_sample["answer"] = raw_sample["label"]
-            this_sample["output"] = answer
+            this_sample["answer"] = answer
             results.append(this_sample)
 
         return results
