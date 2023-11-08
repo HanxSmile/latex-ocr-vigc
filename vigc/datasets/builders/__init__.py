@@ -10,20 +10,21 @@ from vigc.datasets.builders.base_dataset_builder import load_dataset_config
 from vigc.common.registry import registry
 
 from vigc.datasets.builders.caption_builder import CCSBUBuilder
-from vigc.datasets.builders.vqa_eval_builder import (
+from vigc.datasets.builders.vic_eval_builder import (
     AOKVQAEvalBuilder,
     VQAv2EvalBuilder,
     OKVQAEvalBuilder,
+    LLaVAVQATestBuilder
 )
 
-from vigc.datasets.builders.vqga_builder import (
-    LlavaCompVQGABuilder,
-    LlavaDescVQGABuilder,
-    LlavaConvVQGABuilder,
-    A_OKVQA_VQGABuilder,
-    OKVQA_VQGABuilder,
-    VQAv2_VQGABuilder,
-    COCO_Pseudo_VQGABuilder,
+from vigc.datasets.builders.vig_builder import (
+    LlavaCompVIGBuilder,
+    LlavaDescVIGBuilder,
+    LlavaConvVIGBuilder,
+    A_OKVQA_VIGBuilder,
+    OKVQA_VIGBuilder,
+    VQAv2_VIGBuilder,
+    COCO_Pseudo_VIGBuilder,
     LlavaCompVQABuilder,
     LlavaDescVQABuilder,
     LlavaConvVQABuilder,
@@ -38,7 +39,7 @@ from vigc.datasets.builders.vqga_builder import (
     OKVQA_VQGBuilder,
     COCO_Pseudo_VQGBuilder,
 )
-from vigc.datasets.builders.vqga_eval_builder import (
+from vigc.datasets.builders.vig_eval_builder import (
     AOKVQAEvalBuilder,
     COCO_Jiahui_VQGBuilder,
     COCOPseudoEvalBuilder,
@@ -47,18 +48,32 @@ from vigc.datasets.builders.vqga_eval_builder import (
     LlavaVQGAEvalBuilder,
 )
 
+from vigc.datasets.builders.intern_builder import (
+    CCSBUAlignBuilder,
+    AOKVQA_SQA_Builder,
+    ScienceQABuilder,
+    LLavaInstruct150kBuilder,
+    VQAv2_Conv_Builder,
+    GQAVRBuilder,
+    InternPseudoCOCOBuilder
+)
+
+from vigc.datasets.builders.intern_vigc_builder import *
+from vigc.datasets.builders.dummy_builders.hit_word_builder import HitWordEvalBuilder
+from vigc.datasets.builders.dpo_exp_builders.pope_test_builder import POPEVQABuilder
+
 __all__ = [
     # "AOKVQA_Train_Builder",
     "VQAv2EvalBuilder",
     "OKVQAEvalBuilder",
     "AOKVQAEvalBuilder",
-    "LlavaCompVQGABuilder",
-    "LlavaDescVQGABuilder",
-    "LlavaConvVQGABuilder",
-    "A_OKVQA_VQGABuilder",
-    "OKVQA_VQGABuilder",
-    "VQAv2_VQGABuilder",
-    "COCO_Pseudo_VQGABuilder",
+    "LlavaCompVIGBuilder",
+    "LlavaDescVIGBuilder",
+    "LlavaConvVIGBuilder",
+    "A_OKVQA_VIGBuilder",
+    "OKVQA_VIGBuilder",
+    "VQAv2_VIGBuilder",
+    "COCO_Pseudo_VIGBuilder",
     "LlavaCompVQABuilder",
     "LlavaDescVQABuilder",
     "LlavaConvVQABuilder",
@@ -80,6 +95,16 @@ __all__ = [
     "LlavaVQGAEvalBuilder",
     "CCSBUBuilder",
 
+    "CCSBUAlignBuilder",
+    "AOKVQA_SQA_Builder",
+    "ScienceQABuilder",
+    "LLavaInstruct150kBuilder",
+    "VQAv2_Conv_Builder",
+    "GQAVRBuilder",
+    "InternPseudoCOCOBuilder",
+    "LLaVAVQATestBuilder",
+
+    "POPEVQABuilder",
 ]
 
 

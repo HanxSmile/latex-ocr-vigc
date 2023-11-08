@@ -28,6 +28,8 @@ class Blip2VicunaInstruct(Blip2Base):
     PRETRAINED_MODEL_CONFIG_DICT = {
         "vicuna7b": "configs/models/blip2_instruct_vicuna7b.yaml",
         "vicuna13b": "configs/models/blip2_instruct_vicuna13b.yaml",
+        "minigpt4_vicuna7b": "configs/models/mini_gpt4_vicuna7b.yaml",
+        "minigpt4_vicuna13b": "configs/models/mini_gpt4_vicuna13b.yaml",
     }
 
     def __init__(
@@ -46,6 +48,7 @@ class Blip2VicunaInstruct(Blip2Base):
             max_output_txt_len=256,
             apply_lemmatizer=False,
             qformer_text_input=True,
+            truncate_q_former_output=True
     ):
         super().__init__()
         transformers_version = version.parse(transformers.__version__)
@@ -124,6 +127,7 @@ class Blip2VicunaInstruct(Blip2Base):
         self._lemmatizer = None
 
         self.qformer_text_input = qformer_text_input
+        self.truncate_q_former_output = truncate_q_former_output
 
     def concat_text_input_output(self, input_ids, input_atts, output_ids, output_atts):
         input_part_targets_len = []
@@ -190,7 +194,10 @@ class Blip2VicunaInstruct(Blip2Base):
                 return_dict=True,
             )
 
-        inputs_llm = self.llm_proj(query_output.last_hidden_state[:, :query_tokens.size(1), :])
+        if self.truncate_q_former_output:
+            inputs_llm = self.llm_proj(query_output.last_hidden_state[:, :query_tokens.size(1), :])
+        else:
+            inputs_llm = self.llm_proj(query_output.last_hidden_state)
         atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
 
         self.llm_tokenizer.padding_side = "right"
@@ -283,8 +290,10 @@ class Blip2VicunaInstruct(Blip2Base):
             encoder_attention_mask=image_atts,
             return_dict=True,
         )
-
-        inputs_llm = self.llm_proj(query_output.last_hidden_state[:, :query_tokens.size(1), :])
+        if self.truncate_q_former_output:
+            inputs_llm = self.llm_proj(query_output.last_hidden_state[:, :query_tokens.size(1), :])
+        else:
+            inputs_llm = self.llm_proj(query_output.last_hidden_state)
         atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
         return inputs_llm, atts_llm
 
@@ -499,7 +508,10 @@ class Blip2VicunaInstruct(Blip2Base):
                 return_dict=True,
             )
 
-        inputs_llm = self.llm_proj(query_output.last_hidden_state[:, :query_tokens.size(1), :])
+        if self.truncate_q_former_output:
+            inputs_llm = self.llm_proj(query_output.last_hidden_state[:, :query_tokens.size(1), :])
+        else:
+            inputs_llm = self.llm_proj(query_output.last_hidden_state)
         atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
 
         self.llm_tokenizer.padding_side = "right"
@@ -623,6 +635,7 @@ class Blip2VicunaInstruct(Blip2Base):
         apply_lemmatizer = cfg.get("apply_lemmatizer", False)
 
         qformer_text_input = cfg.get("qformer_text_input", True)
+        truncate_q_former_output = cfg.get("truncate_q_former_output", True)
 
         model = cls(
             vit_model=vit_model,
@@ -639,6 +652,7 @@ class Blip2VicunaInstruct(Blip2Base):
             max_output_txt_len=max_output_txt_len,
             apply_lemmatizer=apply_lemmatizer,
             qformer_text_input=qformer_text_input,
+            truncate_q_former_output=truncate_q_former_output
         )
 
         model.load_checkpoint_from_config(cfg)

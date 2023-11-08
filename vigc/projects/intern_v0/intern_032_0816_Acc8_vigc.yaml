@@ -1,0 +1,143 @@
+model:
+  arch: intern_v0
+  model_type: pretrain_vicuna
+  freeze_vit: True
+  low_resources: False
+  # use_qformer: True
+  freeze_qformer: True
+  llama_lora:
+    lora_r: 128
+    lora_alpha: 128
+    lora_dropout: 0.05
+    freeze: False
+    learn_param: ['q', 'v', 'ffn']
+  gradient_checkpointing: False
+  freeze_llama_proj: True
+  # vit_precision: fp16
+  max_txt_len: 384
+  end_sym: "###"
+  mask_human: True
+  only_load_qformer: True
+  prompt_path: "prompts/alignment.txt"
+  prompt_template: '### Human: {} \n### Assistant: '
+  #ckpt: '/mnt/petrelfs/zhaozhiyuan/mllm/MiniGPT-4/pretrained_minigpt4_stage1.pth'
+  7132k:
+    ckpt: '/mnt/petrelfs/share_data/zhangpan/mllm/model/convert2minigpt4/032/mllm_7BF/mixv6_wm.pth'
+
+datasets:
+  ########################
+  ### CAPTION DATASETS ###
+  ########################
+  cc_sbu_align:
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "blip_caption"
+    sample_ratio: 3.5
+
+  aokvqa_sqa:
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "science_qa"
+        input_format: "QCM-ALE"
+        rotate: True
+    sample_ratio: 17
+
+  science_qa:
+    filter_pure_text: True
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "science_qa"
+        input_format: "QCM-ALE"
+        rotate: True
+    sample_ratio: 7
+
+  llava_instruct150k:
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "conversation"
+        header: "A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the human's questions."
+    sample_ratio: 30
+
+  ## Llava 150k instruct VIG
+  intern_llava_comp_vig:
+    sample_ratio: 9
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "blip_caption_instruct"
+        max_words: 100
+
+  intern_llava_desc_vig:
+    sample_ratio: 5
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "blip_caption_instruct"
+        max_words: 100
+
+  intern_llava_conv_vig:
+    sample_ratio: 16
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "blip_caption_instruct"
+        max_words: 100
+
+run:
+  runner: runner_iter
+  task: image_text_pretrain
+  # optimizer
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 2e-4
+  min_lr: 2e-4
+  warmup_lr: 1e-6
+  accum_grad_iters: 8
+
+  weight_decay: 0.05
+  max_iters: 29952  #14976
+  iters_per_inner_epoch: 2496
+  batch_size_train: 8
+  batch_size_eval: 1
+  num_workers: 8
+  warmup_steps: 200
+  distributed_type: ddp
+
+  seed: 42
+  output_dir: "output/instruct/intern_032_0816"
+
+  amp: True
+  resume_ckpt_path: null
+
+  evaluate: False 
+  train_splits: ["train"]
+
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
+

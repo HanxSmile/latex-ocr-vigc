@@ -24,7 +24,7 @@ from vigc.common.dist_utils import (
 )
 from vigc.common.registry import registry
 from vigc.common.utils import is_url
-from vigc.datasets.data_utils import reorg_datasets_by_split
+from vigc.datasets.data_utils import reorg_datasets_by_split, concat_datasets
 from vigc.datasets.datasets.dataloader_utils import (
     IterLoader,
     MultiIterLoader,
@@ -198,7 +198,8 @@ class RunnerBase:
         if self._dataloaders is None:
             # reoganize datasets by split and concatenate/chain if necessary
 
-            self.datasets = reorg_datasets_by_split(self.datasets)
+            datasets = reorg_datasets_by_split(self.datasets)
+            self.datasets = concat_datasets(datasets)
 
             self.datasets = {
                 k: v[0] if len(v) == 1 else v for k, v in self.datasets.items()
@@ -263,7 +264,7 @@ class RunnerBase:
                 batch_sizes=batch_sizes,
                 is_trains=is_trains,
                 collate_fns=collate_fns,
-                concat=True
+                # concat=True
             )
 
             self._dataloaders = {k: v for k, v in zip(split_names, dataloaders)}
@@ -388,7 +389,7 @@ class RunnerBase:
                             ), "No agg_metrics found in validation log."
 
                             agg_metrics = val_log["agg_metrics"]
-                            if agg_metrics > best_agg_metric and split_name == "val":
+                            if agg_metrics > best_agg_metric and split_name == "eval":
                                 best_epoch, best_agg_metric = cur_epoch, agg_metrics
 
                                 self._save_checkpoint(cur_epoch, is_best=True)
@@ -605,9 +606,9 @@ class RunnerBase:
         else:
             save_to = os.path.join(
                 self.output_dir,
-                "checkpoint_{}.pth".format(cur_epoch),
+                "checkpoint_{}.pth".format(cur_epoch+1),
             )
-        logging.info("Saving checkpoint at epoch {} to {}.".format(cur_epoch, save_to))
+        logging.info("Saving checkpoint at epoch {} to {}.".format(cur_epoch+1, save_to))
         torch.save(save_obj, save_to)
 
     def _reload_best_model(self, model):
@@ -651,7 +652,7 @@ class RunnerBase:
         if self.scaler and "scaler" in checkpoint:
             self.scaler.load_state_dict(checkpoint["scaler"])
 
-        self.start_epoch = checkpoint["epoch"] + 1
+        self.start_epoch = checkpoint["epoch"]
         logging.info("Resume checkpoint from {}".format(url_or_filename))
 
     @main_process

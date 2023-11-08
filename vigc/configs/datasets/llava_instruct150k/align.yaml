@@ -1,0 +1,6 @@
+datasets:
+  llava_instruct150k:
+    data_type: images
+    build_info:
+      # storage: cluster2:s3://mllm-data-alg/llava-150k/
+      storage: /mnt/petrelfs/share_data/wangjiaqi/mllm-data-alg/llava-150k/

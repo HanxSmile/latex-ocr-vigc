@@ -1,0 +1,6 @@
+datasets:
+  pope_vqa_test:
+    data_type: images
+    build_info:
+      annotation: /mnt/lustre/hanxiao/dpo_work/data/coco_pope_random.json
+      images: /mnt/petrelfs/share_data/zhaozhiyuan/InstructBLIP/COCO_2014/process/images/val2014

@@ -1,0 +1,6 @@
+datasets:
+  vqav2_conv:
+    data_type: images
+    build_info:
+      annotations: /mnt/petrelfs/share_data/dongxiaoyi/share_data/VQAv2/VQAv2_train_pairformat.json
+      images: /mnt/petrelfs/share_data/zhaozhiyuan/InstructBLIP/VQAv2/process/

@@ -1,13 +1,10 @@
 model:
   arch: blip2_vicuna_instruct
-  model_type: vicuna7b
-  load_pretrained: True
-
-  pretrained: "/mnt/petrelfs/share_data/wangbin/mllm/vigc/models/minigpt4_7b_best.pth"
-  llm_model: "/mnt/petrelfs/hanxiao/vicuna-7b"
+  model_type: minigpt4_vicuna7b
+  finetuned: "/mnt/petrelfs/share_data/wangbin/mllm/vigc/models/minigpt4_7b_best.pth"
 
 datasets:
-  instruct_blip_coco2017_vqga_test: # name of the dataset builder
+  instruct_blip_coco2017_vig_test: # name of the dataset builder
 
     filter:
       - llava
@@ -22,10 +19,10 @@ datasets:
 
 run:
   runner: runner_iter
-  task: instruct_blip_llava_viqa
+  task: instruct_blip_llava_vig
   answer_length: 4
   llava_task: desc  # desc, comp or conv
-  gen_style: vqga  # vqga or vqa
+  gen_style: vig  # vig or vic
 
   batch_size_train: 16
   batch_size_eval: 8

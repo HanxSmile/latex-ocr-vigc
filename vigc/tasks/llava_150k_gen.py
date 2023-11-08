@@ -3,9 +3,10 @@ from vigc.tasks.base_task import BaseTask
 import torch
 import logging
 from vigc.models.blip2_models.blip2 import disabled_train
+from vigc.models import load_model_and_preprocess
 from peft import LoraConfig, get_peft_model
 
-VIGA_INSTRUCTIONS = {
+VIG_INSTRUCTIONS = {
     "comp":
         "Based on the given image, generate an in-depth reasoning question and then answer it.",
     "conv":
@@ -15,12 +16,12 @@ VIGA_INSTRUCTIONS = {
 }
 
 
-@registry.register_task("instruct_blip_llava_viqa")
-class InstructBlipLLavaVQGATask(BaseTask):
+@registry.register_task("instruct_blip_llava_vig")
+class InstructBlipLLavaVIGTask(BaseTask):
 
     def __init__(self, num_beams, max_len, min_len, use_nucleus_sampling, evaluate, task, report_metric=False,
-                 answer_length=1, gen_style="vqga", last_infer_all=False):
-        super(InstructBlipLLavaVQGATask, self).__init__()
+                 answer_length=1, gen_style="vig", last_infer_all=False, in_section=False):
+        super(InstructBlipLLavaVIGTask, self).__init__()
         self.num_beams = num_beams
         self.max_len = max_len
         self.min_len = min_len
@@ -29,12 +30,24 @@ class InstructBlipLLavaVQGATask(BaseTask):
         self.report_metric = report_metric
         self.answer_length = answer_length
         task = task.lower()
-        assert task in VIGA_INSTRUCTIONS
-        self.prompt = VIGA_INSTRUCTIONS[task]
+        assert task in VIG_INSTRUCTIONS
+        self.prompt = VIG_INSTRUCTIONS[task]
         gen_style = gen_style.lower()
-        assert gen_style in ("vqga", "vqa")
+        assert gen_style in ("vig", "vic")
         self.gen_style = gen_style
         self.last_infer_all = last_infer_all
+        self.in_section = in_section
+
+    def build_model_(self, cfg):
+        model_config = cfg.model_cfg
+        model, vis_processors, _ = load_model_and_preprocess(
+            name=model_config.arch,
+            model_type=model_config.model_type,
+            is_eval=True,
+        )
+
+        model.load_checkpoint(model_config.pretrained)
+        return model
 
     def build_model(self, cfg):
         model_config = cfg.model_cfg
@@ -88,8 +101,9 @@ class InstructBlipLLavaVQGATask(BaseTask):
 
         report_metric = run_cfg.get("report_metric", False)
         answer_len = run_cfg.get("answer_length", 1)
-        gen_style = run_cfg.get("gen_style", "vqga")
+        gen_style = run_cfg.get("gen_style", "vig")
         last_infer_all = run_cfg.get("last_infer_all", False)
+        in_section = run_cfg.get("in_section", False)
         task = run_cfg.llava_task
 
         return cls(
@@ -103,6 +117,7 @@ class InstructBlipLLavaVQGATask(BaseTask):
             task=task,
             gen_style=gen_style,
             last_infer_all=last_infer_all,
+            in_section=in_section
         )
 
     def _update(self, conversation, text, step):
@@ -130,13 +145,13 @@ class InstructBlipLLavaVQGATask(BaseTask):
             for i, (c, q) in enumerate(zip(conversation["instruction"], conversation["question"])):
                 current_text = c
                 if q:
-                    current_text = f"{current_text} Question: {q} Answer:" if self.gen_style == "vqga" else q
+                    current_text = f"{current_text} Question: {q} Answer:" if self.gen_style == "vig" else q
                 current_texts.append(current_text)
             conversation["current_text"] = current_texts
-        else:
+        elif not self.in_section:
             current_answers = []
-            if conversation["corrected_answers"] is None:
-                conversation["corrected_answers"] = text
+            if conversation["answers_given_question"] is None:
+                conversation["answers_given_question"] = text
             for answer in text:
                 A = ""
                 if "." in answer:
@@ -154,6 +169,30 @@ class InstructBlipLLavaVQGATask(BaseTask):
                 answers.append(answer)
             conversation["current_text"] = current_texts
             conversation["answer"] = answers
+        else:  # in_section
+            current_answers = []
+            first_flag = True
+            if conversation["answers_given_question"] is None:
+                conversation["answers_given_question"] = text
+            else:
+                first_flag = False
+            for i, answer in enumerate(text):
+                A = answer.split("\n\n")[0].strip()
+                if last_flag and self.last_infer_all:
+                    A = answer.strip()
+                current_answers.append(A)
+            current_texts = []
+            answers = []
+            for i, (c, old_a, a) in enumerate(
+                    zip(conversation["current_text"], conversation["answer"], current_answers)):
+                current_text = f"{c} {a}".strip() if first_flag else f"{c} \n\n{a}".strip()
+                current_texts.append(current_text)
+                conversation["answer_lst"][i].append(a)
+                answer = f"{old_a} \n\n{a}".strip()
+                answers.append(answer)
+            conversation["current_text"] = current_texts
+            conversation["answer"] = answers
+
         return conversation
 
     def valid_step(self, model, samples):
@@ -165,9 +204,10 @@ class InstructBlipLLavaVQGATask(BaseTask):
             "instruction": instructions,
             "current_text": instructions,
             "answer": [""] * len(instructions),
+            "answer_lst": [list() for _ in instructions],
             "question": None,
             "original_answers": None,
-            "corrected_answers": None,
+            "answers_given_question": None,
             "valid": [True] * len(instructions)
         }
         images = samples["image"]
@@ -183,7 +223,7 @@ class InstructBlipLLavaVQGATask(BaseTask):
             )
             self._update(all_res, answers, step=i)
 
-        for raw_samples, instruction, current_text, answer, question, valid, original_answer, corrected_answer in zip(
+        for raw_samples, instruction, current_text, answer, question, valid, original_answer, corrected_answer, answer_lst in zip(
                 raw_samples,
                 all_res["instruction"],
                 all_res["current_text"],
@@ -191,7 +231,8 @@ class InstructBlipLLavaVQGATask(BaseTask):
                 all_res["question"],
                 all_res["valid"],
                 all_res["original_answers"],
-                all_res["corrected_answers"]):
+                all_res["answers_given_question"],
+                all_res["answer_lst"]):
             raw_samples = raw_samples.copy()
 
             raw_samples.update({
@@ -199,8 +240,9 @@ class InstructBlipLLavaVQGATask(BaseTask):
                 "whole_text": current_text,
                 "answer": answer,
                 "original_answer": original_answer,
-                "corrected_answer": corrected_answer,
+                "answer_given_question": corrected_answer,
                 "question": question,
+                "answer_lst": answer_lst
             })
             if valid:
                 results.append(raw_samples)

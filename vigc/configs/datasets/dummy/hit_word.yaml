@@ -1,0 +1,6 @@
+datasets:
+  hit_word_data:
+    data_type: text
+    work_dir: /mnt/petrelfs/share_data/wangbin/mllm/sz_unsafe/xiaohongshu/
+    unsafe_words_anno_path: /mnt/petrelfs/share_data/ouyanglinke/clean_data/common/high.jsonl
+

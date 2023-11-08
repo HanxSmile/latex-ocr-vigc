@@ -7,12 +7,17 @@
 
 from vigc.processors.base_processor import BaseProcessor
 
-
 from vigc.processors.blip_processors import (
     BlipImageTrainProcessor,
     Blip2ImageTrainProcessor,
     BlipImageEvalProcessor,
     BlipCaptionProcessor,
+)
+
+from vigc.processors.vqa_processors import (
+    ScienceQATextProcessor,
+    ConversationTextProcessor,
+    VQATextProcessor
 )
 
 from vigc.common.registry import registry
@@ -24,6 +29,10 @@ __all__ = [
     "Blip2ImageTrainProcessor",
     "BlipImageEvalProcessor",
     "BlipCaptionProcessor",
+    # Intern-v0
+    "ScienceQATextProcessor",
+    "ConversationTextProcessor",
+    "VQATextProcessor"
 ]
 
 

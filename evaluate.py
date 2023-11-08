@@ -39,8 +39,8 @@ def parse_args():
         "--options",
         nargs="+",
         help="override some settings in the used config, the key-value pair "
-        "in xxx=yyy format will be merged into config file (deprecate), "
-        "change to --cfg-options instead.",
+             "in xxx=yyy format will be merged into config file (deprecate), "
+             "change to --cfg-options instead.",
     )
 
     args = parser.parse_args()
@@ -82,7 +82,10 @@ def main():
     task = tasks.setup_task(cfg)
     datasets = task.build_datasets(cfg)
     model = task.build_model(cfg)
-
+    if not hasattr(cfg.run_cfg, "max_iters"):
+        cfg.run_cfg.max_iters = 1
+    if not hasattr(cfg.run_cfg, "iters_per_inner_epoch"):
+        cfg.run_cfg.iters_per_inner_epoch = 1
     runner = RunnerIter(
         cfg=cfg, job_id=job_id, task=task, model=model, datasets=datasets
     )

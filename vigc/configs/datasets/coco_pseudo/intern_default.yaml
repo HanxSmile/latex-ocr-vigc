@@ -1,0 +1,6 @@
+datasets:
+  pseudo_coco:
+    annotation: ""
+    data_type: images
+    build_info:
+      images: /mnt/petrelfs/share_data/zhaozhiyuan/InstructBLIP/COCO2017/

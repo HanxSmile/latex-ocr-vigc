@@ -1,10 +1,10 @@
-from .vqga import LlavaBaseDataset
+from .vigc_train import LlavaBaseDataset
 import json
 import random
 
 
 class COCO_Pseudo_Dataset(LlavaBaseDataset):
-    VQGA_INSTRUCTIONS = (
+    VIG_INSTRUCTIONS = (
         "Based on the content of the given image, generate a question that requires common sense to answer and then briefly answer it.",
         "Explain the content of the image in a question and then provide a short answer using knowledge types such as commonsense and facts.",
         "Generate a query that requires reasoning on the information depicted in the image, utilizing a variety of knowledge types like commonsense, and then offer a concise answer.",
@@ -34,7 +34,7 @@ class COCO_Pseudo_Dataset(LlavaBaseDataset):
                 filtered_samples.append(sample)
         try:
             if threshold > 0:
-                self.sampels = [_ for _ in filtered_samples if max(_["weight"]) > threshold]
+                self.samples = [_ for _ in filtered_samples if max(_["weight"]) > threshold]
             else:
                 self.samples = filtered_samples
         except KeyError:

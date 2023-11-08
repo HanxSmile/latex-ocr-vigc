@@ -1,0 +1,6 @@
+datasets:
+  llava_vqa90_test:
+    data_type: images
+    build_info:
+      images: /mnt/petrelfs/share_data/wufan/data/coco/images/
+      annotation: /mnt/petrelfs/share_data/wufan/data/VQGA/viga_test_data/input/llava_vqa90_test.json
