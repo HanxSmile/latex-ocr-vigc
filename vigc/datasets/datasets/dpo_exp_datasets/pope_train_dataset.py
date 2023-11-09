@@ -11,7 +11,7 @@ class POPETrainDataset(BaseDataset):
     )
 
     def __init__(self, vis_processor, text_processor, vis_root, anno_path):
-        with open(osp.join(vis_root, "image_info.json")) as f:
+        with open(osp.join(vis_root, "image_data.json")) as f:
             image_info = json.load(f)
         self.id2path = {int(_["image_id"]): osp.join(_["url"].split("/")[-2:]) for _ in image_info}
         super(POPETrainDataset, self).__init__(vis_processor, text_processor, vis_root, anno_path)
