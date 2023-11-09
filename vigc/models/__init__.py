@@ -20,6 +20,8 @@ from vigc.processors.base_processor import BaseProcessor
 from vigc.models.intern_models.intern import Intern_v0
 from vigc.models.intern_models.intern_v2 import Intern_v2
 
+from vigc.models.blip2_models.blip2_vicuna_instruct_dpo import Blip2VicunaInstructDPO
+
 __all__ = [
     "load_model",
     "BaseModel",
@@ -27,7 +29,8 @@ __all__ = [
     "Blip2VicunaInstruct",
     "VisionTransformerEncoder",
     "Intern_v0",
-    "Intern_v2"
+    "Intern_v2",
+    "Blip2VicunaInstructDPO",
 ]
 
 

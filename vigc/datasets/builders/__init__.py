@@ -61,6 +61,7 @@ from vigc.datasets.builders.intern_builder import (
 from vigc.datasets.builders.intern_vigc_builder import *
 from vigc.datasets.builders.dummy_builders.hit_word_builder import HitWordEvalBuilder
 from vigc.datasets.builders.dpo_exp_builders.pope_test_builder import POPEVQABuilder
+from vigc.datasets.builders.dpo_exp_builders.pope_train_builder import PopeDPOTrainBuilder
 
 __all__ = [
     # "AOKVQA_Train_Builder",
@@ -105,6 +106,7 @@ __all__ = [
     "LLaVAVQATestBuilder",
 
     "POPEVQABuilder",
+    "PopeDPOTrainBuilder",
 ]
 
 

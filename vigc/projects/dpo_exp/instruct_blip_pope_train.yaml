@@ -1,0 +1,78 @@
+# Copyright (c) 2022, salesforce.com, inc.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+# For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+
+model:
+  arch: dpo_blip2_vicuna_instruct
+  model_type: vicuna13b
+  beta: 0.1
+  lora_config:
+    lora_r: 8
+    lora_alpha: 16
+    lora_dropout: 0.1
+    target_modules: [ "q_proj", "k_proj", "v_proj", "o_proj", "to_q", "to_kv", "to_out", "ff.1", "ff.3" ]
+
+
+datasets:
+  ## POPE train
+  pope_dpo_train:
+    sample_ratio: 1
+    vis_processor:
+      train:
+        name: "blip2_image_train"
+        image_size: 224
+    text_processor:
+      train:
+        name: "blip_caption"
+        max_words: 100
+
+  pope_vqa_test: # name of the dataset builder
+    vis_processor:
+      eval:
+        name: "blip_image_eval"
+        image_size: 224
+    text_processor:
+      eval:
+        name: "blip_caption"
+        max_words: 100
+
+run:
+  runner: runner_iter
+  task: instruct_blip_pope_train_val
+  # optimizer
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 1e-5
+  min_lr: 0
+  warmup_lr: 1e-8
+
+  weight_decay: 0.05
+
+  batch_size_train: 16
+  batch_size_eval: 16
+  num_workers: 4
+  warmup_steps: 64
+
+  iters_per_inner_epoch: 64
+  max_iters: 512
+  accum_grad_iters: 1
+
+  seed: 42
+  output_dir: "./outputs/dpo_exp/pope_coco_random/instruct_blip"
+
+  amp: True
+  resume_ckpt_path: null
+
+  evaluate: False
+  train_splits: [ "train" ]
+  valid_splits: [ "eval" ]
+
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
+
+  generate_cfg:
+    max_len: 10
+    min_len: 1
+    num_beams: 1

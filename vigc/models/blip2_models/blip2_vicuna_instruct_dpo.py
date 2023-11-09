@@ -11,6 +11,9 @@ import transformers
 
 from vigc.common.registry import registry
 from vigc.models.blip2_models.blip2 import Blip2Base, disabled_train
+from peft import LoraConfig, get_peft_model
+from typing import Tuple
+import torch.nn.functional as F
 
 
 @registry.register_model("dpo_blip2_vicuna_instruct")
@@ -26,10 +29,10 @@ class Blip2VicunaInstructDPO(Blip2Base):
     """
 
     PRETRAINED_MODEL_CONFIG_DICT = {
-        "vicuna7b": "configs/models/dpo_blip2_instruct_vicuna7b.yaml",
-        "vicuna13b": "configs/models/dpo_blip2_instruct_vicuna13b.yaml",
-        "minigpt4_vicuna7b": "configs/models/dpo_mini_gpt4_vicuna7b.yaml",
-        "minigpt4_vicuna13b": "configs/models/dpo_mini_gpt4_vicuna13b.yaml",
+        "vicuna7b": "configs/models/dpo/blip2_instruct_vicuna7b.yaml",
+        "vicuna13b": "configs/models/dpo/blip2_instruct_vicuna13b.yaml",
+        "minigpt4_vicuna7b": "configs/models/dpo/mini_gpt4_vicuna7b.yaml",
+        "minigpt4_vicuna13b": "configs/models/dpo/mini_gpt4_vicuna13b.yaml",
     }
 
     def __init__(
@@ -40,7 +43,9 @@ class Blip2VicunaInstructDPO(Blip2Base):
             use_grad_checkpoint=False,
             vit_precision="fp16",
             freeze_vit=True,
-            freeze_vit_ln=False,
+            freeze_vit_ln=True,
+            freeze_q_former=True,
+            freeze_llm_proj=True,
             num_query_token=32,
             llm_model="",
             prompt="",
@@ -48,14 +53,16 @@ class Blip2VicunaInstructDPO(Blip2Base):
             max_output_txt_len=256,
             apply_lemmatizer=False,
             qformer_text_input=True,
-            truncate_q_former_output=True
+            truncate_q_former_output=True,
+            lora_config=None,
+            beta=0.1
     ):
         super().__init__()
         transformers_version = version.parse(transformers.__version__)
         assert transformers_version >= version.parse("4.28"), "BLIP-2 Vicuna requires transformers>=4.28"
         from transformers import LlamaTokenizer
         from vigc.models.blip2_models.modeling_llama import LlamaForCausalLM
-
+        self.beta = beta
         self.tokenizer = self.init_tokenizer(truncation_side="left")
 
         self.visual_encoder, self.ln_vision = self.init_vision_encoder(
@@ -88,11 +95,20 @@ class Blip2VicunaInstructDPO(Blip2Base):
         else:
             self.Qformer.resize_token_embeddings(len(self.tokenizer))
         self.Qformer.cls = None
+        if freeze_q_former:
+            for name, param in self.Qformer.named_parameters():
+                param.requires_grad = False
+            self.Qformer = self.Qformer.eval()
+            self.Qformer.train = disabled_train
+            logging.info("freeze Q-former")
 
         self.llm_tokenizer = LlamaTokenizer.from_pretrained(llm_model, use_fast=False, truncation_side="left")
         self.llm_tokenizer_for_generate = LlamaTokenizer.from_pretrained(llm_model, use_fast=False,
                                                                          truncation_side="left")
-        self.llm_model = LlamaForCausalLM.from_pretrained(
+        self.ref_llm_model = LlamaForCausalLM.from_pretrained(
+            llm_model, torch_dtype=torch.float16
+        )
+        self.policy_llm_model = LlamaForCausalLM.from_pretrained(
             llm_model, torch_dtype=torch.float16
         )
         self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
@@ -105,18 +121,46 @@ class Blip2VicunaInstructDPO(Blip2Base):
         self.llm_tokenizer_for_generate.add_special_tokens({'bos_token': '</s>'})
         self.llm_tokenizer_for_generate.add_special_tokens({'eos_token': '</s>'})
         self.llm_tokenizer_for_generate.add_special_tokens({'unk_token': '</s>'})
-        self.llm_model.resize_token_embeddings(len(self.llm_tokenizer))
+
+        self.ref_llm_model.resize_token_embeddings(len(self.llm_tokenizer))
+        self.policy_llm_model.resize_token_embeddings(len(self.llm_tokenizer))
 
         # self.eos_token_id = self.llm_tokenizer(
         #     self.llm_tokenizer.eos_token, add_special_tokens=False
         # ).input_ids[0]
 
-        for name, param in self.llm_model.named_parameters():
+        for name, param in self.ref_llm_model.named_parameters():
             param.requires_grad = False
+
+        for name, param in self.policy_llm_model.named_parameters():
+            param.requires_grad = False
+
+        if lora_config is not None:
+            logging.info("Loading Lora...")
+            lora_config = LoraConfig(
+                r=lora_config.lora_r,
+                lora_alpha=lora_config.lora_alpha,
+                target_modules=lora_config.target_modules,
+                lora_dropout=lora_config.lora_dropout,
+                bias="none",  # won't use bias currently
+                modules_to_save=[],  # TODO: might be helpful if save partial model
+                task_type="CAUSAL_LM",
+            )
+            self.policy_llm_model = get_peft_model(self.policy_llm_model, peft_config=lora_config)
+            self.policy_llm_model.print_trainable_parameters()
+            logging.info("Loading Lora done.")
 
         self.llm_proj = nn.Linear(
             self.Qformer.config.hidden_size, self.llm_model.config.hidden_size
         )
+
+        if freeze_llm_proj:
+            for name, param in self.llm_proj.named_parameters():
+                param.requires_grad = False
+
+            self.llm_proj = self.llm_proj.eval()
+            self.llm_proj.train = disabled_train
+            logging.info("freeze llm_proj")
 
         self.max_txt_len = max_txt_len
         self.max_output_txt_len = max_output_txt_len
@@ -153,23 +197,15 @@ class Blip2VicunaInstructDPO(Blip2Base):
         llm_tokens['attention_mask'] = torch.stack(llm_tokens['attention_mask'])
         return llm_tokens, input_part_targets_len
 
-    def forward(self, samples):
-        # print('-----------------')
-        # print(samples["text_input"])
-        # print(samples["text_output"])
-        # print('-----------------')
-
-        image = samples["image"]
+    def extract_visual_embeddings(self, image, text):
         with self.maybe_autocast():
             image_embeds = self.ln_vision(self.visual_encoder(image))
         image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image.device)
 
-        bs = image.size(0)
-
         query_tokens = self.query_tokens.expand(image_embeds.shape[0], -1, -1)
         if self.qformer_text_input:
             text_Qformer = self.tokenizer(
-                samples["text_input"],
+                text,
                 padding='longest',
                 truncation=True,
                 max_length=self.max_txt_len,
@@ -199,29 +235,22 @@ class Blip2VicunaInstructDPO(Blip2Base):
         else:
             inputs_llm = self.llm_proj(query_output.last_hidden_state)
         atts_llm = torch.ones(inputs_llm.size()[:-1], dtype=torch.long).to(image.device)
+        return inputs_llm, atts_llm
 
-        self.llm_tokenizer.padding_side = "right"
-        self.llm_tokenizer.truncation_side = 'left'
-        text_input_tokens = self.llm_tokenizer(
-            samples['text_input'],
-            return_tensors="pt",
-            padding="longest",
-            truncation=True,
-            max_length=self.max_txt_len,
-        ).to(image.device)
-
+    def build_inputs_and_targets(self, text_output, text_input_tokens, inputs_llm, atts_llm, device):
+        inputs_llm, atts_llm = inputs_llm.repeat(2, 1, 1), atts_llm.repeat(2, 1)
         self.llm_tokenizer.truncation_side = 'right'
         text_output_tokens = self.llm_tokenizer(
-            [t + self.llm_tokenizer.eos_token for t in samples['text_output']],
+            [t + self.llm_tokenizer.eos_token for t in text_output],
             return_tensors="pt",
             padding="longest",
             truncation=True,
             max_length=self.max_output_txt_len,
-        ).to(image.device)
+        ).to(device)
 
         llm_tokens, input_part_targets_len = self.concat_text_input_output(
-            text_input_tokens.input_ids,
-            text_input_tokens.attention_mask,
+            text_input_tokens.input_ids.repeat(2, 1),
+            text_input_tokens.attention_mask.repeat(2, 1),
             text_output_tokens.input_ids,
             text_output_tokens.attention_mask,
         )
@@ -237,23 +266,150 @@ class Blip2VicunaInstructDPO(Blip2Base):
 
         # do not apply loss to the query tokens
         empty_targets = (
-            torch.ones(atts_llm.size(), dtype=torch.long).to(image.device).fill_(-100)
+            torch.ones(atts_llm.size(), dtype=torch.long).to(device).fill_(-100)
         )
         targets = torch.cat([empty_targets, targets], dim=1)
 
         inputs_embeds = self.llm_model.get_input_embeddings()(llm_tokens['input_ids'])
         inputs_embeds = torch.cat([inputs_llm, inputs_embeds], dim=1)
         attention_mask = torch.cat([atts_llm, llm_tokens['attention_mask']], dim=1)
+        return inputs_embeds, attention_mask, targets
+
+    def _get_batch_logps(
+            self,
+            logits: torch.FloatTensor,
+            labels: torch.LongTensor,
+            average_log_prob: bool = False,
+    ) -> torch.FloatTensor:
+        """Compute the log probabilities of the given labels under the given logits.
+
+        Args:
+            logits: Logits of the model (unnormalized). Shape: (batch_size, sequence_length, vocab_size)
+            labels: Labels for which to compute the log probabilities. Label tokens with a value of label_pad_token_id are ignored. Shape: (batch_size, sequence_length)
+            average_log_prob: If True, return the average log probability per (non-masked) token. Otherwise, return the sum of the log probabilities of the (non-masked) tokens.
+
+        Returns:
+            A tensor of shape (batch_size,) containing the average/sum log probabilities of the given labels under the given logits.
+        """
+        if logits.shape[:-1] != labels.shape:
+            raise ValueError("Logits (batch and sequence length dim) and labels must have the same shape.")
+
+        labels = labels[:, 1:].clone()
+        logits = logits[:, :-1, :]
+        loss_mask = labels != -100
+
+        # dummy token; we'll ignore the losses on these tokens later
+        labels[labels == -100] = 0
+
+        per_token_logps = torch.gather(logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)).squeeze(2)
+
+        if average_log_prob:
+            return (per_token_logps * loss_mask).sum(-1) / loss_mask.sum(-1)
+        else:
+            return (per_token_logps * loss_mask).sum(-1)
+
+    @staticmethod
+    def dpo_loss(
+            policy_logps: torch.FloatTensor,
+            ref_logps: torch.FloatTensor,
+            beta: float,
+            reference_free: bool = False
+    ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+        """Compute the DPO loss for a batch of policy and reference model log probabilities.
+
+        Args:
+            policy_chosen_logps: Log probabilities of the policy model for the chosen responses. Shape: (batch_size,)
+            policy_rejected_logps: Log probabilities of the policy model for the rejected responses. Shape: (batch_size,)
+            reference_chosen_logps: Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
+            reference_rejected_logps: Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
+            beta: Temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5. We ignore the reference model as beta -> 0.
+            reference_free: If True, we ignore the _provided_ reference model and implicitly use a reference model that assigns equal probability to all responses.
+
+        Returns:
+            A tuple of three tensors: (losses, chosen_rewards, rejected_rewards).
+            The losses tensor contains the DPO loss for each example in the batch.
+            The chosen_rewards and rejected_rewards tensors contain the rewards for the chosen and rejected responses, respectively.
+        """
+        policy_chosen_logps, policy_rejected_logps = policy_logps.chunk(2, dim=0)
+        reference_chosen_logps, reference_rejected_logps = ref_logps.chunk(2, dim=0)
+        pi_logratios = policy_chosen_logps - policy_rejected_logps
+        ref_logratios = reference_chosen_logps - reference_rejected_logps
+
+        if reference_free:
+            ref_logratios = 0
+
+        logits = pi_logratios - ref_logratios
+
+        losses = -F.logsigmoid(beta * logits)
+        chosen_rewards = beta * (policy_chosen_logps - reference_chosen_logps).detach()
+        rejected_rewards = beta * (policy_rejected_logps - reference_rejected_logps).detach()
+
+        return losses, chosen_rewards, rejected_rewards
+
+    def forward(self, samples):
+        # print('-----------------')
+        # print(samples["text_input"])
+        # print(samples["text_output"])
+        # print('-----------------')
+
+        image = samples["image"]
+        question = samples["question"]
+        chosen_ans = samples["chosen"]
+        reject_ans = samples["reject"]
+
+        inputs_llm, atts_llm = self.extract_visual_embeddings(image, question)
+
+        self.llm_tokenizer.padding_side = "right"
+        self.llm_tokenizer.truncation_side = 'left'
+        text_input_tokens = self.llm_tokenizer(
+            question,
+            return_tensors="pt",
+            padding="longest",
+            truncation=True,
+            max_length=self.max_txt_len,
+        ).to(image.device)
+
+        inputs_embeds, attention_mask, targets = self.build_inputs_and_targets(
+            chosen_ans + reject_ans,
+            text_input_tokens,
+            inputs_llm,
+            atts_llm,
+            image.device
+        )
 
         with self.maybe_autocast():
-            outputs = self.llm_model(
+            policy_logits = self.policy_llm_model(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
                 return_dict=True,
                 labels=targets,
+            ).logits  # [B, L, V]
+
+            policy_logps = self._get_batch_logps(
+                policy_logits,
+                targets.long(),
+                False
             )
 
-        loss = outputs.loss
+            with torch.no_grad():
+                ref_logits = self.ref_llm_model(
+                    inputs_embeds=inputs_embeds,
+                    attention_mask=attention_mask,
+                    return_dict=True,
+                    labels=targets,
+                ).logits  # [B, L, V]
+
+                ref_logps = self._get_batch_logps(
+                    ref_logits,
+                    targets.long(),
+                    False
+                )
+
+        losses, _, _ = self.dpo_loss(
+            policy_logps, ref_logps, self.beta, False
+        )
+
+        loss = losses.mean()
 
         return {"loss": loss}
 
@@ -623,7 +779,10 @@ class Blip2VicunaInstructDPO(Blip2Base):
         use_grad_checkpoint = cfg.get("use_grad_checkpoint", False)
         vit_precision = cfg.get("vit_precision", "fp16")
         freeze_vit = cfg.get("freeze_vit", True)
-        freeze_vit_ln = cfg.get("freeze_vit_ln", False)
+        freeze_vit_ln = cfg.get("freeze_vit_ln", True)
+        freeze_q_former = cfg.get("freeze_q_former", True)
+        freeze_llm_proj = cfg.get("freeze_llm_proj", True)
+
         prompt = cfg.get("prompt", "")
         max_txt_len = cfg.get("max_txt_len", 128)
         max_output_txt_len = cfg.get("max_output_txt_len", 256)
@@ -633,6 +792,9 @@ class Blip2VicunaInstructDPO(Blip2Base):
         qformer_text_input = cfg.get("qformer_text_input", True)
         truncate_q_former_output = cfg.get("truncate_q_former_output", True)
 
+        lora_config = cfg.get("lora_config", None)
+        beta = cfg.get("beta", 0.1)
+
         model = cls(
             vit_model=vit_model,
             img_size=img_size,
@@ -641,6 +803,8 @@ class Blip2VicunaInstructDPO(Blip2Base):
             vit_precision=vit_precision,
             freeze_vit=freeze_vit,
             freeze_vit_ln=freeze_vit_ln,
+            freeze_q_former=freeze_q_former,
+            freeze_llm_proj=freeze_llm_proj,
             num_query_token=num_query_token,
             llm_model=llm_model,
             prompt=prompt,
@@ -648,7 +812,9 @@ class Blip2VicunaInstructDPO(Blip2Base):
             max_output_txt_len=max_output_txt_len,
             apply_lemmatizer=apply_lemmatizer,
             qformer_text_input=qformer_text_input,
-            truncate_q_former_output=truncate_q_former_output
+            truncate_q_former_output=truncate_q_former_output,
+            lora_config=lora_config,
+            beta=beta
         )
 
         model.load_checkpoint_from_config(cfg)

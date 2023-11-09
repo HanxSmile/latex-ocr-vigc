@@ -1,0 +1,6 @@
+datasets:
+  pope_dpo_train:
+    data_type: images
+    build_info:
+      annotation: /mnt/petrelfs/share_data/zhaozhiyuan/hallucination/pope_data.json
+      images: /mnt/petrelfs/share_data/zhaozhiyuan/VG
