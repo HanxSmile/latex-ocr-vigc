@@ -10,7 +10,7 @@ class PopeDPOTrainBuilder(BaseDatasetBuilder):
 
     DATASET_CONFIG_DICT = {"default": "configs/datasets/dpo_exp/pope_dpo_train.yaml"}
 
-    def build(self):
+    def build_datasets(self):
         logging.info("Building POPE DPO Train datasets ...")
         self.build_processors()
 
