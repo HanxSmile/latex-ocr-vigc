@@ -105,10 +105,8 @@ class Blip2VicunaInstructDPO(Blip2Base):
         self.llm_tokenizer = LlamaTokenizer.from_pretrained(llm_model, use_fast=False, truncation_side="left")
         self.llm_tokenizer_for_generate = LlamaTokenizer.from_pretrained(llm_model, use_fast=False,
                                                                          truncation_side="left")
-        self.ref_llm_model = LlamaForCausalLM.from_pretrained(
-            llm_model, torch_dtype=torch.float16
-        )
-        self.policy_llm_model = LlamaForCausalLM.from_pretrained(
+
+        self.llm_model = LlamaForCausalLM.from_pretrained(
             llm_model, torch_dtype=torch.float16
         )
         self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
@@ -122,33 +120,14 @@ class Blip2VicunaInstructDPO(Blip2Base):
         self.llm_tokenizer_for_generate.add_special_tokens({'eos_token': '</s>'})
         self.llm_tokenizer_for_generate.add_special_tokens({'unk_token': '</s>'})
 
-        self.ref_llm_model.resize_token_embeddings(len(self.llm_tokenizer))
-        self.policy_llm_model.resize_token_embeddings(len(self.llm_tokenizer))
+        self.llm_model.resize_token_embeddings(len(self.llm_tokenizer))
 
         # self.eos_token_id = self.llm_tokenizer(
         #     self.llm_tokenizer.eos_token, add_special_tokens=False
         # ).input_ids[0]
 
-        for name, param in self.ref_llm_model.named_parameters():
+        for name, param in self.llm_model.named_parameters():
             param.requires_grad = False
-
-        for name, param in self.policy_llm_model.named_parameters():
-            param.requires_grad = False
-
-        if lora_config is not None:
-            logging.info("Loading Lora...")
-            lora_config = LoraConfig(
-                r=lora_config.lora_r,
-                lora_alpha=lora_config.lora_alpha,
-                target_modules=lora_config.target_modules,
-                lora_dropout=lora_config.lora_dropout,
-                bias="none",  # won't use bias currently
-                modules_to_save=[],  # TODO: might be helpful if save partial model
-                task_type="CAUSAL_LM",
-            )
-            self.policy_llm_model = get_peft_model(self.policy_llm_model, peft_config=lora_config)
-            self.policy_llm_model.print_trainable_parameters()
-            logging.info("Loading Lora done.")
 
         self.llm_proj = nn.Linear(
             self.Qformer.config.hidden_size, self.llm_model.config.hidden_size
@@ -161,6 +140,21 @@ class Blip2VicunaInstructDPO(Blip2Base):
             self.llm_proj = self.llm_proj.eval()
             self.llm_proj.train = disabled_train
             logging.info("freeze llm_proj")
+
+        if lora_config is not None:
+            logging.info("Loading Lora...")
+            lora_config = LoraConfig(
+                r=lora_config.lora_r,
+                lora_alpha=lora_config.lora_alpha,
+                target_modules=lora_config.target_modules,
+                lora_dropout=lora_config.lora_dropout,
+                bias="none",  # won't use bias currently
+                modules_to_save=[],  # TODO: might be helpful if save partial model
+                task_type="CAUSAL_LM",
+            )
+            self.llm_model = get_peft_model(self.llm_model, peft_config=lora_config)
+            self.llm_model.print_trainable_parameters()
+            logging.info("Loading Lora done.")
 
         self.max_txt_len = max_txt_len
         self.max_output_txt_len = max_output_txt_len
@@ -270,7 +264,7 @@ class Blip2VicunaInstructDPO(Blip2Base):
         )
         targets = torch.cat([empty_targets, targets], dim=1)
 
-        inputs_embeds = self.llm_model.get_input_embeddings()(llm_tokens['input_ids'])
+        inputs_embeds = self.llm_model.get_base_model().get_input_embeddings()(llm_tokens['input_ids'])
         inputs_embeds = torch.cat([inputs_llm, inputs_embeds], dim=1)
         attention_mask = torch.cat([atts_llm, llm_tokens['attention_mask']], dim=1)
         return inputs_embeds, attention_mask, targets
@@ -378,7 +372,7 @@ class Blip2VicunaInstructDPO(Blip2Base):
         )
 
         with self.maybe_autocast():
-            policy_logits = self.policy_llm_model(
+            policy_logits = self.llm_model(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
                 return_dict=True,
@@ -392,7 +386,7 @@ class Blip2VicunaInstructDPO(Blip2Base):
             )
 
             with torch.no_grad():
-                ref_logits = self.ref_llm_model(
+                ref_logits = self.llm_model.get_base_model()(
                     inputs_embeds=inputs_embeds,
                     attention_mask=attention_mask,
                     return_dict=True,
