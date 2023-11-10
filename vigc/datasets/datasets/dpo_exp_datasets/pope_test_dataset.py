@@ -32,7 +32,7 @@ class POPETestDataset(BaseDataset):
         ann = self.samples[index]
 
         image = self.vis_processor(self._read_image(ann))
-        question = self.text_processor(ann["question"])
+        question = self.text_processor(ann["question"]).replace("\n", "")
 
         prompt = random.choice(self.PROMPTS)
         question = prompt.format(q=question)
