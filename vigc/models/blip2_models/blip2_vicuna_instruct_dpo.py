@@ -497,7 +497,7 @@ class Blip2VicunaInstructDPO(Blip2Base):
         self.llm_model.config.pad_token_id = self.llm_model.config.eos_token_id  # debug
 
         if "prefix" in samples:
-            prompt = [f"{prompt_} {prefix_}" for prompt_, prefix_ in zip(prompt, samples["prefix"])]
+            prompt = [f"{prompt_} {prefix_}".strip() for prompt_, prefix_ in zip(prompt, samples["prefix"])]
 
         llm_tokens = self.llm_tokenizer_for_generate(
             prompt,
