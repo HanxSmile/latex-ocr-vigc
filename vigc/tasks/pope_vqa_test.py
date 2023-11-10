@@ -84,11 +84,11 @@ class InstructBlipPopeTestTask(BaseTask):
                 no_answer = no_answer.strip()
 
             if gt_answer == "yes":
-                chosen_answer = f"{self.YES_PREFIX}{yes_answer}".replace(" ,", ",").replace(" .", ".")
-                reject_answer = f"{self.NO_PREFIX}{no_answer}".replace(" ,", ",").replace(" .", ".")
+                chosen_answer = f"{self.YES_PREFIX} {yes_answer}".replace(" ,", ",").replace(" .", ".")
+                reject_answer = f"{self.NO_PREFIX} {no_answer}".replace(" ,", ",").replace(" .", ".")
             elif gt_answer == "no":
-                chosen_answer = f"{self.NO_PREFIX}{no_answer}".replace(" ,", ",").replace(" .", ".")
-                reject_answer = f"{self.YES_PREFIX}{yes_answer}".replace(" ,", ",").replace(" .", ".")
+                chosen_answer = f"{self.NO_PREFIX} {no_answer}".replace(" ,", ",").replace(" .", ".")
+                reject_answer = f"{self.YES_PREFIX} {yes_answer}".replace(" ,", ",").replace(" .", ".")
             else:
                 raise ValueError(f"The answer must between ('yes' or 'no'), got '{gt_answer}'")
             this_sample["chosen"] = chosen_answer
