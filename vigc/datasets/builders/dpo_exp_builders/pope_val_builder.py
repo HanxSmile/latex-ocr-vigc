@@ -1,18 +1,18 @@
 import logging
 from vigc.common.registry import registry
 from vigc.datasets.builders.base_dataset_builder import BaseDatasetBuilder
-from vigc.datasets.datasets.dpo_exp_datasets.pope_test_dataset import POPETestDataset
+from vigc.datasets.datasets.dpo_exp_datasets.pope_val_dataset import POPEEvalDataset
 
 
-@registry.register_builder("pope_vqa_test")
-class POPEVQATestBuilder(BaseDatasetBuilder):
-    eval_dataset_cls = POPETestDataset
+@registry.register_builder("pope_vqa_eval")
+class POPEVQAEvalBuilder(BaseDatasetBuilder):
+    eval_dataset_cls = POPEEvalDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/dpo_exp/pope_dpo_test.yaml"
+        "default": "configs/datasets/dpo_exp/pope_coco_random.yaml"
     }
 
     def build_datasets(self):
-        logging.info("Building POPE COCO Test datasets ...")
+        logging.info("Building POPE COCO Random Eval datasets ...")
         self.build_processors()
 
         build_info = self.config.build_info
@@ -27,7 +27,7 @@ class POPEVQATestBuilder(BaseDatasetBuilder):
             vis_processor=self.vis_processors["eval"],
             text_processor=self.text_processors["eval"],
             vis_root=vis_root,
-            anno_path=anno_path,
+            anno_file=anno_path,
         )
         _ = datasets['eval'][0]
 

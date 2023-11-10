@@ -15,7 +15,7 @@ datasets:
 
 run:
   runner: runner_iter
-  task: instruct_blip_pope_test
+  task: instruct_blip_pope_train_val
 
   batch_size_train: 16
   batch_size_eval: 16
@@ -38,4 +38,4 @@ run:
   generate_cfg:
     max_len: 10
     min_len: 1
-    num_beams: 5
+    num_beams: 1
