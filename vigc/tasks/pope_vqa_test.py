@@ -47,13 +47,23 @@ class InstructBlipPopeTestTask(BaseTask):
         new_samples["prefix"] = [self.YES_PREFIX] * bs + [self.NO_PREFIX] * bs
         return new_samples
 
+    def normalize_output(self, text, prefix=""):
+        text = text.strip()
+        if text.lower().startswith("answer"):
+            text = text.replace("answer:", "").replace("Answer:", "")
+            text = text.replace("answer :", "").replace("Answer :", "")
+            text = text.strip()
+        if prefix:
+            text = f"{prefix} {text}".replace(" ,", ",").replace(" .", ".")
+        return text
+
     def valid_step(self, model, samples):
         results = []
         raw_samples = samples["raw_samples"]
         bs = len(raw_samples)
         new_samples = self.prepare_inputs(samples)
 
-        all_answers = model.generate(
+        all_answers, all_scores = model.generate_multi(
             new_samples,
             use_nucleus_sampling=self.use_nucleus_sampling,
             num_beams=self.num_beams,
@@ -71,24 +81,15 @@ class InstructBlipPopeTestTask(BaseTask):
             this_sample["question"] = raw_sample["question"]
             this_sample["answer"] = raw_sample["answer"]
 
-            yes_answer = yes_answer.strip()
-            if yes_answer.lower().startswith("answer"):
-                yes_answer = yes_answer.replace("answer:", "").replace("Answer:", "")
-                yes_answer = yes_answer.replace("answer :", "").replace("Answer :", "")
-                yes_answer = yes_answer.strip()
-
-            no_answer = no_answer.strip()
-            if no_answer.lower().startswith("answer"):
-                no_answer = no_answer.replace("answer:", "").replace("Answer:", "")
-                no_answer = no_answer.replace("answer :", "").replace("Answer :", "")
-                no_answer = no_answer.strip()
+            yes_answer = [self.normalize_output(_, prefix=self.YES_PREFIX) for _ in yes_answer]
+            no_answer = [self.normalize_output(_, prefix=self.NO_PREFIX) for _ in no_answer]
 
             if gt_answer == "yes":
-                chosen_answer = f"{self.YES_PREFIX} {yes_answer}".replace(" ,", ",").replace(" .", ".")
-                reject_answer = f"{self.NO_PREFIX} {no_answer}".replace(" ,", ",").replace(" .", ".")
+                chosen_answer = yes_answer
+                reject_answer = no_answer
             elif gt_answer == "no":
-                chosen_answer = f"{self.NO_PREFIX} {no_answer}".replace(" ,", ",").replace(" .", ".")
-                reject_answer = f"{self.YES_PREFIX} {yes_answer}".replace(" ,", ",").replace(" .", ".")
+                chosen_answer = no_answer
+                reject_answer = yes_answer
             else:
                 raise ValueError(f"The answer must between ('yes' or 'no'), got '{gt_answer}'")
             this_sample["chosen"] = chosen_answer
