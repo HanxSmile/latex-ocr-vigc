@@ -13,7 +13,7 @@ class POPETrainDataset(BaseDataset):
     def __init__(self, vis_processor, text_processor, vis_root, anno_path):
         with open(osp.join(vis_root, "image_data.json")) as f:
             image_info = json.load(f)
-        self.id2path = {int(_["image_id"]): osp.join(* _["url"].split("/")[-2:]) for _ in image_info}
+        self.id2path = {int(_["image_id"]): osp.join(*_["url"].split("/")[-2:]) for _ in image_info}
         super(POPETrainDataset, self).__init__(vis_processor, text_processor, vis_root, anno_path)
 
     def init_samples(self):
@@ -33,8 +33,19 @@ class POPETrainDataset(BaseDataset):
 
         image = self.vis_processor(self._read_image(ann))
         question = self.text_processor(ann["question"])
-        chosen = self.text_processor(ann["chosen"])
-        reject = self.text_processor(ann["reject"])
+        chosen, reject = ann["chosen"], ann["reject"]
+        if isinstance(chosen, str):
+            chosen = [chosen]
+        if isinstance(reject, str):
+            reject = [reject]
+        chosen_score = ann.get("chosen_score", [1] * len(chosen))
+        reject_score = ann.get("reject_score", [1] * len(reject))
+
+        chosen = random.choices(chosen, list(chosen_score), k=1)[0]
+        reject = random.choices(reject, list(reject_score), k=1)[0]
+
+        chosen = self.text_processor(chosen)
+        reject = self.text_processor(reject)
 
         prompt = random.choice(self.PROMPTS)
         question = prompt.format(q=question)

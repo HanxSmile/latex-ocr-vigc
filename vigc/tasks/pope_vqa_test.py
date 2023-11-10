@@ -75,8 +75,10 @@ class InstructBlipPopeTestTask(BaseTask):
         )
 
         yes_answers, no_answers = all_answers[:bs], all_answers[bs:]
+        yes_scores, no_scores = all_scores[:bs], all_scores[bs:]
 
-        for raw_sample, yes_answer, no_answer in zip(raw_samples, yes_answers, no_answers):
+        for raw_sample, yes_answer, no_answer, yes_score, no_score in zip(raw_samples, yes_answers, no_answers,
+                                                                          yes_scores, no_scores):
             this_sample = dict()
             raw_sample = raw_sample.copy()
             gt_answer = raw_sample["answer"].strip().lower()
@@ -90,13 +92,21 @@ class InstructBlipPopeTestTask(BaseTask):
             if gt_answer == "yes":
                 chosen_answer = yes_answer
                 reject_answer = no_answer
+
+                chosen_score = yes_score
+                reject_score = no_score
             elif gt_answer == "no":
                 chosen_answer = no_answer
                 reject_answer = yes_answer
+
+                chosen_score = no_score
+                reject_score = yes_score
             else:
                 raise ValueError(f"The answer must between ('yes' or 'no'), got '{gt_answer}'")
             this_sample["chosen"] = chosen_answer
             this_sample["reject"] = reject_answer
+            this_sample["chosen_score"] = chosen_score
+            this_sample["reject_score"] = reject_score
 
             results.append(this_sample)
 
