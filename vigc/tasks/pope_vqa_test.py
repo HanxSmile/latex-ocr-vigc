@@ -4,8 +4,8 @@ from vigc.tasks.base_task import BaseTask
 
 @registry.register_task("instruct_blip_pope_test")
 class InstructBlipPopeTestTask(BaseTask):
-    YES_PREFIX = "Yes,"
-    NO_PREFIX = "No,"
+    YES_PREFIX = "Yes"
+    NO_PREFIX = "No"
 
     def __init__(self, num_beams, max_len, min_len, use_nucleus_sampling, evaluate, report_metric=False):
         super().__init__()
