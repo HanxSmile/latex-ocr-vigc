@@ -75,6 +75,7 @@ class InstructBlipPopeTestTask(BaseTask):
         )
 
         yes_answers, no_answers = all_answers[:bs], all_answers[bs:]
+        all_scores = [_.tolist() for _ in all_scores]
         yes_scores, no_scores = all_scores[:bs], all_scores[bs:]
 
         for raw_sample, yes_answer, no_answer, yes_score, no_score in zip(raw_samples, yes_answers, no_answers,
