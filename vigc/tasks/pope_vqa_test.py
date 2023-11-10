@@ -39,27 +39,29 @@ class InstructBlipPopeTestTask(BaseTask):
             report_metric=report_metric,
         )
 
+    def prepare_inputs(self, samples):
+        new_samples = dict()
+        bs = len(samples["prompt"])
+        new_samples["image"] = samples["image"].repeat(2, 1, 1, 1)
+        new_samples["prompt"] = samples["prompt"] * 2
+        new_samples["prefix"] = [self.YES_PREFIX] * bs + [self.NO_PREFIX] * bs
+        return new_samples
+
     def valid_step(self, model, samples):
         results = []
         raw_samples = samples["raw_samples"]
+        bs = len(raw_samples)
+        new_samples = self.prepare_inputs(samples)
 
-        samples["prefix"] = [self.YES_PREFIX] * len(samples["prompt"])
-
-        yes_answers = model.generate(
-            samples,
+        all_answers = model.generate(
+            new_samples,
             use_nucleus_sampling=self.use_nucleus_sampling,
             num_beams=self.num_beams,
             max_length=self.max_len,
             min_length=self.min_len
         )
-        samples["prefix"] = [self.NO_PREFIX] * len(samples["prompt"])
-        no_answers = model.generate(
-            samples,
-            use_nucleus_sampling=self.use_nucleus_sampling,
-            num_beams=self.num_beams,
-            max_length=self.max_len,
-            min_length=self.min_len
-        )
+
+        yes_answers, no_answers = all_answers[:bs], all_answers[bs:]
 
         for raw_sample, yes_answer, no_answer in zip(raw_samples, yes_answers, no_answers):
             this_sample = dict()
