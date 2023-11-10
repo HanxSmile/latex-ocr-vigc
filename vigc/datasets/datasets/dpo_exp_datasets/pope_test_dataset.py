@@ -7,7 +7,7 @@ import os.path as osp
 
 class POPETestDataset(BaseDataset):
     PROMPTS = (
-        "Question: {q} Answer:",
+        "Given the image, answer the following question with no more than three words. {q}",
     )
 
     def __init__(self, vis_processor, text_processor, vis_root, anno_path):

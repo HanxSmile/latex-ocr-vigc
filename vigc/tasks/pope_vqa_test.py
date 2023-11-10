@@ -49,12 +49,15 @@ class InstructBlipPopeTestTask(BaseTask):
 
     def normalize_output(self, text, prefix=""):
         text = text.strip()
+        if "000000000000" in text:
+            text = ""
         if text.lower().startswith("answer"):
             text = text.replace("answer:", "").replace("Answer:", "")
             text = text.replace("answer :", "").replace("Answer :", "")
             text = text.strip()
         if prefix:
             text = f"{prefix} {text}".replace(" ,", ",").replace(" .", ".")
+
         return text
 
     def valid_step(self, model, samples):
