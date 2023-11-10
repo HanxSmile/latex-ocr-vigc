@@ -42,7 +42,7 @@ class POPETestDataset(BaseDataset):
             "prompt": question,
         }
 
-        return input_sample
+        return input_sample, ann
 
     def collater(self, samples):
         image_list, prompt_list, raw_sample_list = [], [], []
