@@ -7,7 +7,7 @@ import os.path as osp
 
 class POPETestDataset(BaseDataset):
     PROMPTS = (
-        "{q}",
+        "Question: {q} Answer:",
     )
 
     def __init__(self, vis_processor, text_processor, vis_root, anno_path):

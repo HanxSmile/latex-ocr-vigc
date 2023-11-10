@@ -1,6 +1,6 @@
 model:
   arch: blip2_vicuna_instruct
-  model_type: vicuna13b
+  model_type: vicuna7b
 
 datasets:
   pope_vqa_test: # name of the dataset builder
@@ -17,8 +17,8 @@ run:
   runner: runner_iter
   task: instruct_blip_pope_test
 
-  batch_size_train: 16
-  batch_size_eval: 16
+  batch_size_train: 8
+  batch_size_eval: 8
   num_workers: 4
 
   iters_per_inner_epoch: 2000
@@ -36,6 +36,6 @@ run:
   distributed: True
 
   generate_cfg:
-    max_len: 10
+    max_len: 250
     min_len: 1
     num_beams: 5
