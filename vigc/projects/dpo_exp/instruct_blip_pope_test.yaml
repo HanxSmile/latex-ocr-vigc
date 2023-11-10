@@ -10,7 +10,7 @@ datasets:
           image_size: 224
     text_processor:
         eval:
-          name: "blip_caption"
+          name: "blip_caption_instruct"
           max_words: 100
 
 run:
