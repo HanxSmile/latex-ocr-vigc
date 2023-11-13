@@ -16,7 +16,7 @@ class POPEVQAEvalBuilder(BaseDatasetBuilder):
         self.build_processors()
 
         build_info = self.config.build_info
-        anno_path = build_info.annotation,
+        anno_path = build_info.annotation
         vis_root = build_info.images
 
         subset = self.config.get("subset", "random")
