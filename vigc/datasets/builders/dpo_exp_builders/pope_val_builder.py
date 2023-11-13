@@ -8,7 +8,7 @@ from vigc.datasets.datasets.dpo_exp_datasets.pope_val_dataset import POPEEvalDat
 class POPEVQAEvalBuilder(BaseDatasetBuilder):
     eval_dataset_cls = POPEEvalDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/dpo_exp/pope_coco_random.yaml"
+        "default": "configs/datasets/dpo_exp/pope_coco_eval.yaml"
     }
 
     def build_datasets(self):
@@ -19,6 +19,9 @@ class POPEVQAEvalBuilder(BaseDatasetBuilder):
         anno_path = build_info.annotation,
         vis_root = build_info.images
 
+        subset = self.config.get("subset", "random")
+        assert subset in ("random", "popular", "adversarial")
+
         datasets = dict()
 
         # create datasets
@@ -27,7 +30,7 @@ class POPEVQAEvalBuilder(BaseDatasetBuilder):
             vis_processor=self.vis_processors["eval"],
             text_processor=self.text_processors["eval"],
             vis_root=vis_root,
-            anno_file=anno_path,
+            anno_file=anno_path.get(subset),
         )
         _ = datasets['eval'][0]
 
