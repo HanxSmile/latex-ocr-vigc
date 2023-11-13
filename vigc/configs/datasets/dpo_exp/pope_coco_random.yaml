@@ -1,5 +1,5 @@
 datasets:
-  pope_vqa_test:
+  pope_vqa_eval:
     data_type: images
     build_info:
       annotation: /mnt/lustre/hanxiao/dpo_work/data/coco_pope_random.json
