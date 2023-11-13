@@ -15,8 +15,10 @@ class PopeDPOTrainBuilder(BaseDatasetBuilder):
         self.build_processors()
 
         build_info = self.config.build_info
-        anno_path = build_info.annotation,
+        anno_path = build_info.annotation
         vis_root = build_info.images
+        subset = self.config.get("subset", "minigpt4")
+        assert subset in ("llava", "minigpt4", "instruct_blip_7b", "instruct_blip_13b")
 
         datasets = dict()
         split = "train"
@@ -27,7 +29,7 @@ class PopeDPOTrainBuilder(BaseDatasetBuilder):
         datasets[split] = dataset_cls(
             vis_processor=self.vis_processors[split],
             text_processor=self.text_processors[split],
-            anno_path=anno_path,
+            anno_path=anno_path.get(subset),
             vis_root=vis_root
         )
 

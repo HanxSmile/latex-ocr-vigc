@@ -2,5 +2,9 @@ datasets:
   pope_dpo_train:
     data_type: images
     build_info:
-      annotation: /mnt/petrelfs/share_data/zhaozhiyuan/hallucination/pope_data.json
+      annotation:
+        llava: /mnt/lustre/hanxiao/dpo_work/data/llava_pope_train.json
+        minigpt4: /mnt/petrelfs/share_data/zhaozhiyuan/hallucination/pope_data.json
+        instruct_blip_7b: ""
+        instruct_blip_13b: ""
       images: /mnt/petrelfs/share_data/zhaozhiyuan/VG
