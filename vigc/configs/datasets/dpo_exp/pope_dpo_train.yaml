@@ -5,6 +5,6 @@ datasets:
       annotation:
         llava: /mnt/lustre/hanxiao/dpo_work/data/llava_pope_train.json
         minigpt4: /mnt/petrelfs/share_data/zhaozhiyuan/hallucination/pope_data.json
-        instruct_blip_7b: "/mnt/petrelfs/hanxiao/work/vigc/vigc/outputs/dpo_exp/pope_coco_random/instruct_blip/20231115145/result/eval_epochbest.json"
+        instruct_blip_7b: "/mnt/lustre/hanxiao/work/vigc/vigc/outputs/dpo_exp/pope_coco_random/instruct_blip/20231115145/result/eval_epochbest_filtered.json"
         instruct_blip_13b: ""
       images: /mnt/petrelfs/share_data/zhaozhiyuan/VG
