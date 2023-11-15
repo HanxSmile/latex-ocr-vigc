@@ -2,5 +2,5 @@ datasets:
   pope_vqa_test:
     data_type: images
     build_info:
-      annotation: /mnt/petrelfs/share_data/zhaozhiyuan/hallucination/pope_data.json
+      annotation: /mnt/lustre/hanxiao/dpo_work/data/pope_raw_qa_instructblip.json
       images: /mnt/petrelfs/share_data/zhaozhiyuan/VG
