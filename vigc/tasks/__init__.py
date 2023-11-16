@@ -18,6 +18,8 @@ from vigc.tasks.dummy_task.hit_word_task import HitWordInferTask
 from vigc.tasks.pope_vqa_train_val import InstructBlipPopeTrainValTask
 from vigc.tasks.pope_vqa_test import InstructBlipPopeTestTask
 
+from vigc.tasks.pope_description_train_val import InstructBlipDescriptionPopeTrainValTask
+
 
 def setup_task(cfg):
     assert "task" in cfg.run_cfg, "Task name must be provided."
@@ -41,4 +43,5 @@ __all__ = [
     "HitWordInferTask",
     "InstructBlipPopeTrainValTask",
     "InstructBlipPopeTestTask",
+    "InstructBlipDescriptionPopeTrainValTask",
 ]

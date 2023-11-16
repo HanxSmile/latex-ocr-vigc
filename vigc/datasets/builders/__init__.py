@@ -64,6 +64,9 @@ from vigc.datasets.builders.dpo_exp_builders.pope_val_builder import POPEVQAEval
 from vigc.datasets.builders.dpo_exp_builders.pope_train_builder import PopeDPOTrainBuilder
 from vigc.datasets.builders.dpo_exp_builders.pope_test_builder import POPEVQATestBuilder
 
+from vigc.datasets.builders.dpo_exp_builders.pope_description_train_builder import PopeDescriptionDPOTrainBuilder
+from vigc.datasets.builders.dpo_exp_builders.pope_description_test_builder import POPEDescriptionTestBuilder
+
 __all__ = [
     # "AOKVQA_Train_Builder",
     "VQAv2EvalBuilder",
@@ -109,6 +112,10 @@ __all__ = [
     "POPEVQAEvalBuilder",
     "PopeDPOTrainBuilder",
     "POPEVQATestBuilder",
+
+    "PopeDescriptionDPOTrainBuilder",
+    "POPEDescriptionTestBuilder",
+
 ]
 
 

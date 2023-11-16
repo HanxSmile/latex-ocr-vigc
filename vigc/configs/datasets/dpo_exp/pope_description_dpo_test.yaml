@@ -1,0 +1,6 @@
+datasets:
+  pope_description_test:
+    data_type: images
+    build_info:
+      annotation: /mnt/petrelfs/share_data/zhaozhiyuan/hallucination/val_images_full.json
+      images: /mnt/petrelfs/share_data/zhaozhiyuan/VG

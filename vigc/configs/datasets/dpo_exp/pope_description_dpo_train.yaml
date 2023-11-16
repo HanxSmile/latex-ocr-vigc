@@ -1,0 +1,10 @@
+datasets:
+  pope_description_dpo_train:
+    data_type: images
+    build_info:
+      annotation:
+        llava: /mnt/lustre/hanxiao/dpo_work/data/description/augment_llava_data_all.json
+        minigpt4: /mnt/lustre/hanxiao/dpo_work/data/description/minigpt4_train_augmented.json
+        instruct_blip_7b: ""
+        instruct_blip_13b: ""
+      images: /mnt/petrelfs/share_data/zhaozhiyuan/VG
