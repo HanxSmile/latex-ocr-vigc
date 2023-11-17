@@ -86,7 +86,7 @@ class InstructBlipMMETrainValTask(BaseTask):
                 answer = answer.replace("answer :", "").replace("Answer :", "")
                 answer = answer.strip()
             this_sample["id"] = raw_sample["id"]
-            this_sample["image_name"] = raw_sample["image_path"].split("/")[-1]
+            this_sample["image_name"] = raw_sample["image"]
             this_sample["question_type"] = raw_sample["question_type"]
             this_sample["question"] = raw_sample["question"]
             this_sample["gt_answer"] = raw_sample["answer"].lower()

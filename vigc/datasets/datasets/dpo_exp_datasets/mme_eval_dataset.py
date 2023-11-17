@@ -45,6 +45,7 @@ class MMEEvalDataset(BaseDataset):
                 ann_path = osp.join(anno_path, ann_file)
                 with open(ann_path, "r") as f:
                     lines = f.readlines()
+                    assert len(lines) == 2
                     for line in lines:
                         ann = line.split("\t")
                         question, answer = ann[0].strip(), ann[1].strip()
