@@ -106,7 +106,7 @@ class POPEDescriptionTrainDataset_Minigpt4(BaseDataset):
 
         image = self.vis_processor(self._read_image(ann))
         question = self.text_processor(ann.get("question", self.QUESTION))
-        chosen, reject = ann["chosen"], ann["reject"]
+        chosen, reject = ann["chosen"], ann["rejected"]
         if isinstance(chosen, str):
             chosen = [chosen]
         if isinstance(reject, str):
