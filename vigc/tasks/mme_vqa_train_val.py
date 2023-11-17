@@ -69,7 +69,7 @@ class InstructBlipMMETrainValTask(BaseTask):
     def valid_step(self, model, samples):
         results = []
         raw_samples = samples["raw_samples"]
-
+        print(samples["prompt"])
         answers = model.generate(
             samples,
             use_nucleus_sampling=self.use_nucleus_sampling,

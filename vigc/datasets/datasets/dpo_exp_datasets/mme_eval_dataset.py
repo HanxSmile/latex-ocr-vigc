@@ -17,7 +17,7 @@ class MMEEvalDataset(BaseDataset):
     def init_samples(self):
         dataset_path = self.vis_root
         samples = []
-        for folder in os.listdir(dataset_path):
+        for folder in sorted(os.listdir(dataset_path)):
             triple_dir_flag = True
             data_path = os.path.join(dataset_path, folder)
             if not (osp.isdir(data_path) and folder != "eval_tool"):
@@ -34,7 +34,7 @@ class MMEEvalDataset(BaseDataset):
             ann_file_dic = {k: v for k, v in zip(ann_names, ann_files)}
             image_file_dic = {k: v for k, v in zip(image_names, image_files)}
 
-            valid_name = set(ann_file_dic.keys()) | set(image_file_dic.keys())
+            valid_name = sorted(list(set(ann_file_dic.keys()) & set(image_file_dic.keys())))
             for name in valid_name:
                 image_file = image_file_dic[name]
                 ann_file = ann_file_dic[name]
@@ -50,7 +50,9 @@ class MMEEvalDataset(BaseDataset):
                         ann = line.split("\t")
                         question, answer = ann[0].strip(), ann[1].strip()
                         samples.append(
-                            {"id": len(samples), "qid": f"{folder}-{image_path}", "image": image_path,
+                            {"id": f"{folder}-{image_path}-{question}",
+                             "qid": f"{folder}-{image_path}",
+                             "image": image_path,
                              "question_type": folder, "question": question,
                              "answer": answer, "image_path": image_path})
         return samples
