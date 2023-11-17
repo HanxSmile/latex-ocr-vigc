@@ -19,6 +19,7 @@ from vigc.tasks.pope_vqa_train_val import InstructBlipPopeTrainValTask
 from vigc.tasks.pope_vqa_test import InstructBlipPopeTestTask
 
 from vigc.tasks.pope_description_train_val import InstructBlipDescriptionPopeTrainValTask
+from vigc.tasks.mme_vqa_train_val import InstructBlipMMETrainValTask
 
 
 def setup_task(cfg):
@@ -44,4 +45,5 @@ __all__ = [
     "InstructBlipPopeTrainValTask",
     "InstructBlipPopeTestTask",
     "InstructBlipDescriptionPopeTrainValTask",
+    "InstructBlipMMETrainValTask",
 ]

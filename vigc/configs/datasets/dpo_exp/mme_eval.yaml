@@ -1,0 +1,6 @@
+datasets:
+  mme_eval:
+    data_type: images
+    build_info:
+      annotation: ""
+      images: /mnt/petrelfs/share_data/ouyanglinke/MME/MME_Benchmark_release_version
