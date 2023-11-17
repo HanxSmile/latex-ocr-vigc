@@ -18,13 +18,15 @@ class MMEEvalDataset(BaseDataset):
         dataset_path = self.vis_root
         samples = []
         for folder in os.listdir(dataset_path):
+            triple_dir_flag = True
             data_path = os.path.join(dataset_path, folder)
             if not (osp.isdir(data_path) and folder != "eval_tool"):
                 continue
             vis_root = osp.join(data_path, "images")
-            anno_path = osp.join(data_path, "question_answers_YN")
+            anno_path = osp.join(data_path, "questions_answers_YN")
             if not (osp.isdir(vis_root) and osp.isdir(anno_path)):
-                continue
+                vis_root, anno_path = data_path, data_path
+                triple_dir_flag = False
             ann_files = [_ for _ in os.listdir(anno_path) if _.endswith(".txt")]
             ann_names = [_.split(".")[0] for _ in ann_files]
             image_files = [_ for _ in os.listdir(vis_root) if _.endswith(".png") or _.endswith(".jpg")]
@@ -36,7 +38,10 @@ class MMEEvalDataset(BaseDataset):
             for name in valid_name:
                 image_file = image_file_dic[name]
                 ann_file = ann_file_dic[name]
-                image_path = osp.join(folder, "images", image_file)
+                if triple_dir_flag:
+                    image_path = osp.join(folder, "images", image_file)
+                else:
+                    image_path = osp.join(folder, image_file)
                 ann_path = osp.join(anno_path, ann_file)
                 with open(ann_path, "r") as f:
                     lines = f.readlines()
@@ -45,7 +50,7 @@ class MMEEvalDataset(BaseDataset):
                         question, answer = ann[0].strip(), ann[1].strip()
                         samples.append(
                             {"id": len(samples), "image": image_path, "question_type": folder, "question": question,
-                             "answer": answer, "image_path": osp.join(vis_root, image_file)})
+                             "answer": answer, "image_path": image_path})
         return samples
 
     def __getitem__(self, index):
