@@ -86,8 +86,7 @@ class InstructBlipMMETrainValTask(BaseTask):
                 answer = answer.replace("answer :", "").replace("Answer :", "")
                 answer = answer.strip()
             this_sample["id"] = raw_sample["id"]
-            this_sample["image_name"] = raw_sample["image"]
-            this_sample["question_type"] = raw_sample["question_type"]
+            this_sample["qid"] = raw_sample["qid"]
             this_sample["question"] = raw_sample["question"]
             this_sample["gt_answer"] = raw_sample["answer"].lower()
             this_sample["pred_answer"] = answer
@@ -163,7 +162,7 @@ class InstructBlipMMETrainValTask(BaseTask):
                     if res[remove_duplicate] in id_list:
                         continue
                     id_list.append(res[remove_duplicate])
-                    question_type, image_name = res[remove_duplicate].split("-")
+                    question_type, image_name = res["qid"].split("-")
 
                     gt_ans = res["gt_answer"].lower()
                     pred_ans = parse_pred_ans(res["pred_answer"])
