@@ -50,7 +50,7 @@ class MMEEvalDataset(BaseDataset):
                         ann = line.split("\t")
                         question, answer = ann[0].strip(), ann[1].strip()
                         samples.append(
-                            {"id": len(samples), "image": image_path, "question_type": folder, "question": question,
+                            {"id": f"{folder}-{image_path}", "image": image_path, "question_type": folder, "question": question,
                              "answer": answer, "image_path": image_path})
         return samples
 
