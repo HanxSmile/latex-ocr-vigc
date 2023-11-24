@@ -39,7 +39,7 @@ class FormulaRecTrainBuilder(BaseDatasetBuilder):
 class FormulaRecEvalBuilder(BaseDatasetBuilder):
     eval_dataset_cls = Im2LatexDataset
     DATASET_CONFIG_DICT = {
-        "default": "configs/datasets/formula_eval.yaml"
+        "default": "configs/datasets/formula/formula_eval.yaml"
     }
     LOG_INFO = "Formula Recgnition Eval"
 
