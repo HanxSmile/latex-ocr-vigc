@@ -98,7 +98,7 @@ class FormulaImageTrainProcessor(FormulaImageBaseProcessor):
         img = self.prepare_input(item, self.random_padding)
         if img is None:
             return img
-        return self.transform(img)
+        return self.transform(image=img)['image']
 
     @classmethod
     def from_config(cls, cfg=None):
@@ -130,7 +130,7 @@ class FormulaImageEvalProcessor(FormulaImageBaseProcessor):
 
     def __call__(self, item):
         image = self.prepare_input(item)
-        return self.transform(image)
+        return self.transform(image=image)['image']
 
     @classmethod
     def from_config(cls, cfg=None):
