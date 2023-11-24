@@ -19,7 +19,10 @@ class Im2LatexDataset(BaseDataset):
 
     def __getitem__(self, index):
         ann = self.samples[index]
-        image = self.vis_processor(self._read_image(ann))
+        try:
+            image = self.vis_processor(self._read_image(ann))
+        except Exception:
+            return self[(index + 1) % len(self)]
         if image is None:
             return self[(index + 1) % len(self)]
         equation = ann["equation"]
