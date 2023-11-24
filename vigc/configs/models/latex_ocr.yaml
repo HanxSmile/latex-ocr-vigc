@@ -13,7 +13,7 @@ model:
   encoder_args:
     max_width: 256
     max_height: 256
-    channels: 3
+    channels: 1
     patch_size: 16
     emb_dropout: 0
     dim: 256
