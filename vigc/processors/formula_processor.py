@@ -39,12 +39,13 @@ class FormulaImageBaseProcessor(BaseProcessor):
         """
         if img is None:
             return
-        # crop margins
-        try:
-            img = self.crop_margin(img.convert("RGB"))
-        except OSError:
-            # might throw an error for broken files
-            return
+        # # crop margins
+        # try:
+        #     img = self.crop_margin(img.convert("RGB"))
+        # except OSError:
+        #     # might throw an error for broken files
+        #     return
+        img = img.convert("RGB")
         if img.height == 0 or img.width == 0:
             return
 
