@@ -27,3 +27,5 @@ transformers>=4.28.0
 webdataset
 wheel
 peft
+torchtext==0.15.2
+Levenshtein

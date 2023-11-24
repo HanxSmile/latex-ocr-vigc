@@ -67,6 +67,7 @@ from vigc.datasets.builders.dpo_exp_builders.pope_test_builder import POPEVQATes
 from vigc.datasets.builders.dpo_exp_builders.pope_description_train_builder import PopeDescriptionDPOTrainBuilder
 from vigc.datasets.builders.dpo_exp_builders.pope_description_test_builder import POPEDescriptionTestBuilder
 from vigc.datasets.builders.dpo_exp_builders.mme_eval_builder import MMEEvalBuilder
+from vigc.datasets.builders.formula import FormulaRecTrainBuilder, FormulaRecEvalBuilder
 
 __all__ = [
     # "AOKVQA_Train_Builder",
@@ -118,6 +119,9 @@ __all__ = [
     "POPEDescriptionTestBuilder",
 
     "MMEEvalBuilder",
+
+    "FormulaRecTrainBuilder",
+    "FormulaRecEvalBuilder",
 ]
 
 

@@ -20,6 +20,7 @@ from vigc.tasks.pope_vqa_test import InstructBlipPopeTestTask
 
 from vigc.tasks.pope_description_train_val import InstructBlipDescriptionPopeTrainValTask
 from vigc.tasks.mme_vqa_train_val import InstructBlipMMETrainValTask
+from vigc.tasks.latex_ocr_train import LatexOCR_Train
 
 
 def setup_task(cfg):
@@ -46,4 +47,5 @@ __all__ = [
     "InstructBlipPopeTestTask",
     "InstructBlipDescriptionPopeTrainValTask",
     "InstructBlipMMETrainValTask",
+    "LatexOCR_Train",
 ]

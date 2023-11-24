@@ -1,0 +1,66 @@
+import logging
+from vigc.common.registry import registry
+from vigc.datasets.builders.base_dataset_builder import BaseDatasetBuilder
+from vigc.datasets.datasets.formula import Im2LatexDataset
+
+
+@registry.register_builder("formula_rec_train")
+class FormulaRecTrainBuilder(BaseDatasetBuilder):
+    train_dataset_cls = Im2LatexDataset
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/formula/formula_train.yaml"
+    }
+    LOG_INFO = "Formula Recgnition Train"
+
+    def build_datasets(self):
+        logging.info(f"Building {self.LOG_INFO} datasets ...")
+        self.build_processors()
+
+        build_info = self.config.build_info
+        anno_path = build_info.annotation,
+        vis_root = build_info.images
+
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.train_dataset_cls
+        datasets['train'] = dataset_cls(
+            vis_processor=self.vis_processors["train"],
+            text_processor=self.text_processors["train"],
+            vis_root=vis_root,
+            anno_path=anno_path,
+        )
+        print(datasets['train'][0])
+
+        return datasets
+
+
+@registry.register_builder("formula_rec_eval")
+class FormulaRecEvalBuilder(BaseDatasetBuilder):
+    eval_dataset_cls = Im2LatexDataset
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/formula_eval.yaml"
+    }
+    LOG_INFO = "Formula Recgnition Eval"
+
+    def build_datasets(self):
+        logging.info(f"Building {self.LOG_INFO} datasets ...")
+        self.build_processors()
+
+        build_info = self.config.build_info
+        anno_path = build_info.annotation,
+        vis_root = build_info.images
+
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.eval_dataset_cls
+        datasets['eval'] = dataset_cls(
+            vis_processor=self.vis_processors["eval"],
+            text_processor=self.text_processors["eval"],
+            vis_root=vis_root,
+            anno_path=anno_path,
+        )
+        print(datasets['eval'][0])
+
+        return datasets

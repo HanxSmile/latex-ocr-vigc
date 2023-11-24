@@ -19,6 +19,10 @@ from vigc.processors.vqa_processors import (
     ConversationTextProcessor,
     VQATextProcessor
 )
+from vigc.processors.formula_processor import (
+    FormulaImageTrainProcessor,
+    FormulaImageEvalProcessor
+)
 
 from vigc.common.registry import registry
 

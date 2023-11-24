@@ -21,6 +21,7 @@ from vigc.models.intern_models.intern import Intern_v0
 from vigc.models.intern_models.intern_v2 import Intern_v2
 
 from vigc.models.blip2_models.blip2_vicuna_instruct_dpo import Blip2VicunaInstructDPO
+from vigc.models.latex_ocr.latex_ocr import LatexOCRModel
 
 __all__ = [
     "load_model",
@@ -31,6 +32,7 @@ __all__ = [
     "Intern_v0",
     "Intern_v2",
     "Blip2VicunaInstructDPO",
+    "LatexOCRModel",
 ]
 
 
