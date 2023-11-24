@@ -21,11 +21,11 @@ datasets:
 
   formula_rec_eval:
     vis_processor:
-      train:
+      eval:
         name: "formula_image_eval"
         image_size: 256
     text_processor:
-      train:
+      eval:
         name: "blip_caption"
         max_words: 256
 
