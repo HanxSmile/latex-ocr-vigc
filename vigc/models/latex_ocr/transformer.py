@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from vigc.models.latex_ocr.transformer_wrapper import TransformerWrapper
+from vigc.models.latex_ocr.decoder import AttentionLayers
 from x_transformers.autoregressive_wrapper import top_k, top_p
-from x_transformers import TransformerWrapper, Decoder
 
 
 class AutoregressiveWrapper(nn.Module):
@@ -79,7 +80,8 @@ def get_decoder(args):
         TransformerWrapper(
             num_tokens=args.num_tokens,
             max_seq_len=args.max_seq_len,
-            attn_layers=Decoder(
+            attn_layers=AttentionLayers(
+                causal=True,
                 dim=args.dim,
                 depth=args.num_layers,
                 heads=args.heads,
