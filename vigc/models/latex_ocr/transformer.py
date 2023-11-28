@@ -1,12 +1,18 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from x_transformers.autoregressive_wrapper import AutoregressiveWrapper, top_k, top_p
+from x_transformers.autoregressive_wrapper import top_k, top_p
 from x_transformers import TransformerWrapper, Decoder
 
 
-class CustomARWrapper(AutoregressiveWrapper):
-    def __init__(self, *args, **kwargs):
-        super(CustomARWrapper, self).__init__(*args, **kwargs)
+class AutoregressiveWrapper(nn.Module):
+    def __init__(self, net, ignore_index=-100, pad_value=0):
+        super().__init__()
+        self.pad_value = pad_value
+        self.ignore_index = ignore_index
+
+        self.net = net
+        self.max_seq_len = net.max_seq_len
 
     @torch.no_grad()
     def generate(self, start_tokens, seq_len=256, eos_token=None, temperature=1., filter_logits_fn=top_k,
@@ -52,9 +58,24 @@ class CustomARWrapper(AutoregressiveWrapper):
         self.net.train(was_training)
         return out
 
+    def forward(self, x, **kwargs):
+        xi = x[:, :-1]
+        xo = x[:, 1:]
+
+        # help auto-solve a frequent area of confusion around input masks in auto-regressive
+        # if user supplies a mask that is only off by one from the source sequence, resolve it for them
+        mask = kwargs.get('mask', None)
+        if mask is not None and mask.shape[1] == x.shape[1]:
+            mask = mask[:, :-1]
+            kwargs['mask'] = mask
+
+        out = self.net(xi, **kwargs)
+        loss = F.cross_entropy(out.transpose(1, 2), xo, ignore_index=self.ignore_index)
+        return loss
+
 
 def get_decoder(args):
-    return CustomARWrapper(
+    return AutoregressiveWrapper(
         TransformerWrapper(
             num_tokens=args.num_tokens,
             max_seq_len=args.max_seq_len,
