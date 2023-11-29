@@ -40,7 +40,7 @@ class LatexOCR_Train(BaseTask):
     def valid_step(self, model, samples):
         results = []
         image, text = samples["image"], samples["text_input"]
-        preds = model.generate(image, self.temperature)
+        preds = model.generate(samples, self.temperature)
         pred_tokens = preds["pred_tokens"]
         pred_strs = preds["pred_str"]
 
