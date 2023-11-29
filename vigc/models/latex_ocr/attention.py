@@ -2,7 +2,6 @@ import torch
 from torch import nn, einsum
 import torch.nn.functional as F
 from inspect import isfunction
-from collections import namedtuple
 
 from einops import rearrange, repeat
 
@@ -11,11 +10,6 @@ from entmax import entmax15
 # constants
 
 DEFAULT_DIM_HEAD = 64
-
-Intermediates = namedtuple('Intermediates', [
-    'pre_softmax_attn',
-    'post_softmax_attn'
-])
 
 
 # helpers
@@ -190,8 +184,6 @@ class Attention(nn.Module):
         if exists(prev_attn):
             dots = dots + prev_attn
 
-        pre_softmax_attn = dots.clone()
-
         if talking_heads:
             dots = einsum('b h i j, h k -> b k i j', dots, self.pre_softmax_proj).contiguous()
 
@@ -218,7 +210,6 @@ class Attention(nn.Module):
             del mask
 
         attn = self.attn_fn(dots, dim=-1)
-        post_softmax_attn = attn.clone()
 
         attn = self.dropout(attn)
 
@@ -232,9 +223,4 @@ class Attention(nn.Module):
             gates = self.gate_v(x)
             out = out * gates.sigmoid()
 
-        intermediates = Intermediates(
-            pre_softmax_attn=pre_softmax_attn,
-            post_softmax_attn=post_softmax_attn
-        )
-
-        return self.to_out(out), intermediates
+        return self.to_out(out)
