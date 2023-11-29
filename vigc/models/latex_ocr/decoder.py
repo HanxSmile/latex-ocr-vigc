@@ -4,7 +4,6 @@ from torch import nn
 import torch.nn.functional as F
 from functools import partial
 from inspect import isfunction
-from collections import namedtuple
 
 from einops import rearrange
 from vigc.models.latex_ocr.attention import Attention
@@ -12,16 +11,6 @@ from vigc.models.latex_ocr.attention import Attention
 # constants
 
 DEFAULT_DIM_HEAD = 64
-
-Intermediates = namedtuple('Intermediates', [
-    'pre_softmax_attn',
-    'post_softmax_attn'
-])
-
-LayerIntermediates = namedtuple('Intermediates', [
-    'hiddens',
-    'attn_intermediates'
-])
 
 
 # helpers
@@ -407,7 +396,7 @@ class AttentionLayers(nn.Module):
 
             if layer_type == 'a':
                 out = block(x, mask=mask, sinusoidal_emb=self.pia_pos_emb, rel_pos=self.rel_pos,
-                                   rotary_pos_emb=rotary_pos_emb, prev_attn=prev_attn, mem=layer_mem)
+                            rotary_pos_emb=rotary_pos_emb, prev_attn=prev_attn, mem=layer_mem)
             elif layer_type == 'c':
                 out = block(x, context=context, mask=mask, context_mask=context_mask, prev_attn=prev_cross_attn)
             elif layer_type == 'f':
