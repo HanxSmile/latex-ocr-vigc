@@ -24,7 +24,6 @@ class LatexOCRModel(Blip2Base):
         "default": "configs/models/latex_ocr.yaml",
     }
 
-    max_seq_len = 1024
     pad_token = "[PAD]"
     bos_token = "[BOS]"
     eos_token = "[EOS]"
@@ -55,6 +54,7 @@ class LatexOCRModel(Blip2Base):
         self.tokenizer.pad_token_id = self.pad_token_id
         self.tokenizer.bos_token_id = self.bos_token_id
         self.tokenizer.eos_token_id = self.eos_token_id
+        self.max_seq_len = decoder_args.max_seq_len
 
     def forward(self, samples):
         image, text = samples["image"], samples["text_input"]

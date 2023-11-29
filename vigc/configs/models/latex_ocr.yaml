@@ -22,7 +22,7 @@ model:
 
   decoder_args:
     num_tokens: 8000
-    max_seq_len: 1024
+    max_seq_len: 512
     dim: 256
     num_layers: 4
     heads: 8
