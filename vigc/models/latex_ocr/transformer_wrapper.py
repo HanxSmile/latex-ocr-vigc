@@ -108,7 +108,7 @@ class TransformerWrapper(nn.Module):
             if exists(mask):
                 mask = F.pad(mask, (num_mem, 0), value=True)
 
-        x, intermediates = self.attn_layers(x, mask=mask, mems=None, return_hiddens=True, **kwargs)
+        x = self.attn_layers(x, mask=mask, mems=None, **kwargs)
         x = self.norm(x)
 
         mem, x = x[:, :num_mem], x[:, num_mem:]
