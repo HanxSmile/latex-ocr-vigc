@@ -35,10 +35,11 @@ class CustomVisionTransformer(VisionTransformer):
 
 
 def get_encoder(args):
+    backbone_layers = [int(_) for _ in args.backbone_layers]
     backbone = ResNetV2(
-        layers=args.backbone_layers, num_classes=0, global_pool='', in_chans=args.channels,
+        layers=backbone_layers, num_classes=0, global_pool='', in_chans=args.channels,
         preact=False, stem_type='same', conv_layer=StdConv2dSame)
-    min_patch_size = 2 ** (len(args.backbone_layers) + 1)
+    min_patch_size = 2 ** (len(backbone_layers) + 1)
 
     def embed_layer(**x):
         ps = x.pop('patch_size', min_patch_size)
