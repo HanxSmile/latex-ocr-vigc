@@ -45,13 +45,14 @@ def get_encoder(args):
         assert ps % min_patch_size == 0 and ps >= min_patch_size, 'patch_size needs to be multiple of %i with current backbone configuration' % min_patch_size
         return HybridEmbed(**x, patch_size=ps // min_patch_size, backbone=backbone)
 
-    encoder = CustomVisionTransformer(img_size=(args.max_height, args.max_width),
-                                      patch_size=args.patch_size,
-                                      in_chans=args.channels,
-                                      num_classes=0,
-                                      embed_dim=args.dim,
-                                      depth=args.encoder_depth,
-                                      num_heads=args.heads,
-                                      embed_layer=embed_layer
-                                      )
+    encoder = CustomVisionTransformer(
+        img_size=(args.max_height, args.max_width),
+        patch_size=args.patch_size,
+        in_chans=args.channels,
+        num_classes=0,
+        embed_dim=args.dim,
+        depth=args.encoder_depth,
+        num_heads=args.heads,
+        embed_layer=embed_layer
+    )
     return encoder

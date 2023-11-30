@@ -22,6 +22,7 @@ class LatexOCRModel(Blip2Base):
 
     PRETRAINED_MODEL_CONFIG_DICT = {
         "default": "configs/models/latex_ocr.yaml",
+        "hybrid": "configs/models/hybrid_latex_ocr.yaml"
     }
 
     pad_token = "[PAD]"

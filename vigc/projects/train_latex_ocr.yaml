@@ -1,6 +1,6 @@
 model:
   arch: latex_ocr
-  model_type: default
+  model_type: hybrid
 
   load_pretrained: False
   load_finetuned: False

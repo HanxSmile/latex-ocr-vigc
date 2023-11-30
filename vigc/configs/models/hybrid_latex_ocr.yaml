@@ -1,0 +1,53 @@
+model:
+  arch: latex_ocr
+  load_finetuned: False
+  load_pretrained: False
+
+  #  pretrained: "https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/InstructBLIP/instruct_blip_vicuna7b_trimmed.pth"
+  pretrained: "path/to/pretrained/weight"
+  finetuned: ""
+  tokenizer: /mnt/lustre/hanxiao/ocr-work/LaTeX-OCR/pix2tex/model/dataset/tokenizer.json
+
+  encoder_structure: hybrid
+  # vit encoder
+  encoder_args:
+    max_width: 256
+    max_height: 256
+    channels: 1
+    backbone_layers:
+      - 2
+      - 3
+      - 7
+    patch_size: 16
+    dim: 256
+    encoder_depth: 4
+    heads: 8
+
+  decoder_args:
+    num_tokens: 8000
+    max_seq_len: 512
+    dim: 256
+    num_layers: 4
+    heads: 8
+    attn_on_attn: True
+    cross_attend: True
+    ff_glu: True
+    rel_pos_bias: False
+    use_scalenorm: False
+    pad_token: 0
+
+
+
+preprocess:
+  vis_processor:
+    train:
+      name: "formula_image_train"
+      image_size: 256
+    eval:
+      name: "formula_image_eval"
+      image_size: 256
+  text_processor:
+    train:
+      name: "blip_caption"
+    eval:
+      name: "blip_caption"
