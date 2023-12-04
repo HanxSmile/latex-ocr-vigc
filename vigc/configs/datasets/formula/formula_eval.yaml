@@ -2,5 +2,5 @@ datasets:
   formula_rec_eval:
     data_type: images
     build_info:
-      images: /mnt/lustre/hanxiao/ocr-work/OCR-Data/dataset/data/pdf/val
-      annotation: /mnt/lustre/hanxiao/ocr-work/OCR-Data/dataset/data/pdf/pdfmath.txt
+      images: /mnt/petrelfs/share_data/hanxiao/latex-ocr/pdf/val
+      annotation: /mnt/petrelfs/share_data/hanxiao/latex-ocr/pdf/pdfmath.txt
