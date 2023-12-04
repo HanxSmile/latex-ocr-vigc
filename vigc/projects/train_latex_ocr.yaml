@@ -13,7 +13,9 @@ datasets:
     vis_processor:
       train:
         name: "formula_image_train"
-        image_size: 256
+        image_size:
+          - 192
+          - 672
     text_processor:
       train:
         name: "blip_caption"
@@ -23,7 +25,9 @@ datasets:
     vis_processor:
       eval:
         name: "formula_image_eval"
-        image_size: 256
+        image_size:
+          - 192
+          - 672
     text_processor:
       eval:
         name: "blip_caption"
@@ -68,4 +72,4 @@ run:
   distributed_type: ddp  # or fsdp when train llm
 
   generate_cfg:
-    temperature: 0.2
+    temperature: 0.333

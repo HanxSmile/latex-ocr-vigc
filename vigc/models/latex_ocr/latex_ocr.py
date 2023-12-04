@@ -1,4 +1,5 @@
 import torch
+import re
 
 import vigc.models.latex_ocr.vit as vit
 import vigc.models.latex_ocr.hybrid as hybrid
@@ -99,6 +100,31 @@ class LatexOCRModel(Blip2Base):
                                                                                                               '').strip()
                 for detok in dec]
 
+    @staticmethod
+    def post_process(s: str):
+        """Remove unnecessary whitespace from LaTeX code.
+
+        Args:
+            s (str): Input string
+
+        Returns:
+            str: Processed image
+        """
+        text_reg = r'(\\(operatorname|mathrm|text|mathbf)\s?\*? {.*?})'
+        letter = '[a-zA-Z]'
+        noletter = '[\W_^\d]'
+        names = [x[0].replace(' ', '') for x in re.findall(text_reg, s)]
+        s = re.sub(text_reg, lambda match: str(names.pop(0)), s)
+        news = s
+        while True:
+            s = news
+            news = re.sub(r'(?!\\ )(%s)\s+?(%s)' % (noletter, noletter), r'\1\2', s)
+            news = re.sub(r'(?!\\ )(%s)\s+?(%s)' % (noletter, letter), r'\1\2', news)
+            news = re.sub(r'(%s)\s+?(%s)' % (letter, noletter), r'\1\2', news)
+            if news == s:
+                break
+        return s
+
     @torch.no_grad()
     def generate(
             self,
@@ -119,7 +145,7 @@ class LatexOCRModel(Blip2Base):
             )
         pred_tokens = self.detokenize(outputs, self.tokenizer)
         pred_str = self.token2str(outputs, self.tokenizer)
-
+        pred_str = [self.post_process(_) for _ in pred_str]
         return {"pred_tokens": pred_tokens, "pred_str": pred_str}
 
     @classmethod

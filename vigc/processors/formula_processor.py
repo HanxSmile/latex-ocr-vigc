@@ -13,7 +13,8 @@ class FormulaImageBaseProcessor(BaseProcessor):
 
     def __init__(self, image_size):
         super(FormulaImageBaseProcessor, self).__init__()
-        self.input_size = [image_size, image_size]
+        self.input_size = [int(_) for _ in image_size]
+        assert len(self.input_size) == 2
 
     @staticmethod
     def crop_margin(img: Image.Image) -> Image.Image:
@@ -70,9 +71,8 @@ class FormulaImageBaseProcessor(BaseProcessor):
 
 @registry.register_processor("formula_image_train")
 class FormulaImageTrainProcessor(FormulaImageBaseProcessor):
-    def __init__(self, image_size=384, random_padding=False):
+    def __init__(self, image_size=384):
         super().__init__(image_size)
-        self.random_padding = random_padding
 
         self.transform = alb.Compose(
             [
@@ -96,7 +96,7 @@ class FormulaImageTrainProcessor(FormulaImageBaseProcessor):
         )
 
     def __call__(self, item):
-        img = self.prepare_input(item, self.random_padding)
+        img = self.prepare_input(item, random_padding=True)
         if img is None:
             return img
         return self.transform(image=np.array(img))['image'][:1]
@@ -106,18 +106,16 @@ class FormulaImageTrainProcessor(FormulaImageBaseProcessor):
         if cfg is None:
             cfg = OmegaConf.create()
 
-        image_size = cfg.get("image_size", 384)
-        random_padding = cfg.get("random_padding", False)
+        image_size = cfg.get("image_size", [384, 384])
 
         return cls(
             image_size=image_size,
-            random_padding=random_padding
         )
 
 
 @registry.register_processor("formula_image_eval")
 class FormulaImageEvalProcessor(FormulaImageBaseProcessor):
-    def __init__(self, image_size=384):
+    def __init__(self, image_size):
         super().__init__(image_size)
 
         self.transform = alb.Compose(
@@ -138,6 +136,6 @@ class FormulaImageEvalProcessor(FormulaImageBaseProcessor):
         if cfg is None:
             cfg = OmegaConf.create()
 
-        image_size = cfg.get("image_size", 384)
+        image_size = cfg.get("image_size", [384, 384])
 
         return cls(image_size=image_size)

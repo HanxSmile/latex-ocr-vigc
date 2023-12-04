@@ -3,7 +3,6 @@ from vigc.tasks.base_task import BaseTask
 from vigc.common.dist_utils import main_process
 import os.path as osp
 import json
-import re
 import numpy as np
 from torchtext.data import metrics
 from Levenshtein import distance
@@ -55,37 +54,12 @@ class LatexOCR_Train(BaseTask):
             this_item = {
                 "pred_token": pred_token,
                 "pred_str": pred_str,
-                "truth_str": truth_str,
+                "truth_str": model.post_process(truth_str),
                 "truth_token": truth_token,
                 "id": id_
             }
             results.append(this_item)
         return results
-
-    @staticmethod
-    def post_process(s: str):
-        """Remove unnecessary whitespace from LaTeX code.
-
-        Args:
-            s (str): Input string
-
-        Returns:
-            str: Processed image
-        """
-        text_reg = r'(\\(operatorname|mathrm|text|mathbf)\s?\*? {.*?})'
-        letter = '[a-zA-Z]'
-        noletter = '[\W_^\d]'
-        names = [x[0].replace(' ', '') for x in re.findall(text_reg, s)]
-        s = re.sub(text_reg, lambda match: str(names.pop(0)), s)
-        news = s
-        while True:
-            s = news
-            news = re.sub(r'(?!\\ )(%s)\s+?(%s)' % (noletter, noletter), r'\1\2', s)
-            news = re.sub(r'(?!\\ )(%s)\s+?(%s)' % (noletter, letter), r'\1\2', news)
-            news = re.sub(r'(%s)\s+?(%s)' % (letter, noletter), r'\1\2', news)
-            if news == s:
-                break
-        return s
 
     def after_evaluation(self, val_result, split_name, epoch, **kwargs):
         eval_result_file = self.save_result(
@@ -117,7 +91,7 @@ class LatexOCR_Train(BaseTask):
         for result in results:
             pred_token, pred_str, truth_token, truth_str = result["pred_token"], result["pred_str"], result[
                 "truth_token"], result["truth_str"]
-            truth_str, pred_str = self.post_process(truth_str), self.post_process(pred_str)
+
             if len(truth_str) > 0:
                 edit_dists.append(distance(pred_str, truth_str) / len(truth_str))
 

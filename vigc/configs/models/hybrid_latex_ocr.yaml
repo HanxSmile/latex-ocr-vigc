@@ -11,8 +11,8 @@ model:
   encoder_structure: hybrid
   # vit encoder
   encoder_args:
-    max_width: 256
-    max_height: 256
+    max_width: 672
+    max_height: 192
     channels: 1
     backbone_layers:
       - 2
@@ -42,10 +42,14 @@ preprocess:
   vis_processor:
     train:
       name: "formula_image_train"
-      image_size: 256
+      image_size:
+        - 192
+        - 672
     eval:
       name: "formula_image_eval"
-      image_size: 256
+      image_size:
+        - 192
+        - 672
   text_processor:
     train:
       name: "blip_caption"
