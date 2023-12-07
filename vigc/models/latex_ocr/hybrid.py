@@ -50,11 +50,11 @@ class CustomVisionTransformer(VisionTransformer):
 
         h_pos_emb = h_pos_emb_ind[:, None] * emb[None, :]
         h_pos_emb = torch.cat([torch.cos(h_pos_emb), torch.sin(h_pos_emb)], dim=1)
-        h_pos_emb = repeat(h_pos_emb, "h d -> (h w) d", w=w)
+        h_pos_emb = repeat(h_pos_emb, "h d -> (h w) d", w=w).to(x.dtype).to(x.device)
 
         w_pos_emb = w_pos_emb_ind[:, None] * emb[None, :]
         w_pos_emb = torch.cat([torch.cos(w_pos_emb), torch.sin(w_pos_emb)], dim=1)
-        w_pos_emb = repeat(w_pos_emb, "w d -> (h w) d", h=h)
+        w_pos_emb = repeat(w_pos_emb, "w d -> (h w) d", h=h).to(x.dtype).to(x.device)
 
         pos_emb = torch.cat([self.cls_pos_embedding, torch.cat([h_pos_emb, w_pos_emb], dim=1)], dim=0)[None]
         return x + pos_emb.to(x.dtype).to(x.device)
