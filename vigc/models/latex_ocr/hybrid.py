@@ -13,6 +13,7 @@ class CustomVisionTransformer(VisionTransformer):
         self.height, self.width = img_size
         self.patch_size = patch_size
         self.multi_scale = multi_scale
+        self.cls_pos_embedding = torch.nn.Parameter(torch.zeros(1, self.embed_dim))
 
     def forward_features(self, x):
         B, c, h, w = x.shape
