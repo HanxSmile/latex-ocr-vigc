@@ -21,7 +21,8 @@ from vigc.processors.vqa_processors import (
 )
 from vigc.processors.formula_processor import (
     FormulaImageTrainProcessor,
-    FormulaImageEvalProcessor
+    FormulaImageEvalProcessor,
+    FormulaImageMultiScaleTrainProcessor,
 )
 
 from vigc.common.registry import registry

@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 from PIL import Image, ImageOps
 from torchvision.transforms.functional import resize
+import random
 
 
 class FormulaImageBaseProcessor(BaseProcessor):
@@ -111,6 +112,28 @@ class FormulaImageTrainProcessor(FormulaImageBaseProcessor):
         return cls(
             image_size=image_size,
         )
+
+
+@registry.register_processor("formula_image_multi_scale_train")
+class FormulaImageMultiScaleTrainProcessor(FormulaImageTrainProcessor):
+    def __init__(self, all_scales):
+        for i, scales in enumerate(all_scales):
+            all_scales[i] = [int(_) for _ in scales]
+        super(FormulaImageMultiScaleTrainProcessor, self).__init__(all_scales[0])
+        self.all_scales = all_scales
+
+    @classmethod
+    def from_config(cls, cfg=None):
+        if cfg is None:
+            cfg = OmegaConf.create()
+
+        all_scales = cfg.get("all_scales", [[384, 384]])
+        return cls(
+            all_scales=all_scales
+        )
+
+    def reset_scale(self):
+        self.input_size = random.choice(self.all_scales)
 
 
 @registry.register_processor("formula_image_eval")

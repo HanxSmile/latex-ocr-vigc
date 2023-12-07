@@ -1,0 +1,81 @@
+model:
+  arch: latex_ocr
+  model_type: hybrid
+
+  load_pretrained: False
+  load_finetuned: False
+  encoder_args:
+    multi_scale: True
+
+
+datasets:
+
+  multi_scale_formula_rec_train:
+    sample_ratio: 1
+    vis_processor:
+      train:
+        name: "formula_image_multi_scale_train"
+        all_scales:
+          - [ 96, 336 ]
+          - [ 128, 448 ]
+          - [ 192, 672 ]
+          - [ 288, 1008 ]
+          - [ 384, 1344 ]
+
+    text_processor:
+      train:
+        name: "blip_caption"
+        max_words: 256
+
+  formula_rec_eval:
+    vis_processor:
+      eval:
+        name: "formula_image_eval"
+        image_size:
+          - 192
+          - 672
+    text_processor:
+      eval:
+        name: "blip_caption"
+        max_words: 256
+
+run:
+  runner: runner_iter
+  task: latex_ocr_train
+  # optimizer
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 5e-4
+  min_lr: 1e-8
+  warmup_lr: 1e-5
+
+  weight_decay: 0.05
+
+  batch_size_train: 64
+  batch_size_eval: 64
+  accum_grad_iters: 1
+
+  num_workers: 4
+  warmup_steps: 1000
+
+  iters_per_inner_epoch: 2000
+  max_iters: 60000
+  milestone: [ 10, 15, 20 ]
+
+  seed: 42
+  output_dir: "./output/kosmos_base"
+
+  amp: True
+  resume_ckpt_path: null
+
+  evaluate: False
+  train_splits: [ "train" ]
+  valid_splits: [ "eval" ]
+
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
+  distributed_type: ddp  # or fsdp when train llm
+
+  generate_cfg:
+    temperature: 0.333
