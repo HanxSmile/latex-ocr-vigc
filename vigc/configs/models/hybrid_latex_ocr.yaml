@@ -22,6 +22,7 @@ model:
     dim: 256
     encoder_depth: 4
     heads: 8
+    multi_scale: False
 
   decoder_args:
     num_tokens: 8000
