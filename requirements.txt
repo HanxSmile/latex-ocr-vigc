@@ -29,3 +29,4 @@ wheel
 peft
 torchtext==0.15.2
 Levenshtein
+x_transformers==0.15.0
