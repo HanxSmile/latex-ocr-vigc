@@ -15,8 +15,8 @@ class BaseDataset(Dataset):
     def __init__(self, vis_processor, text_processor, vis_root, anno_path):
 
         self.vis_root = vis_root
-        if isinstance(anno_path, tuple) or isinstance(anno_path, list):
-            anno_path = anno_path[0]
+        # if isinstance(anno_path, tuple) or isinstance(anno_path, list):
+        #     anno_path = anno_path[0]
         self.anno_path = anno_path
 
         self.vis_processor = vis_processor
