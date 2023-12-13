@@ -87,6 +87,9 @@ class FormulaRecEvalBuilder(BaseDatasetBuilder):
         anno_path = build_info.annotation,
         vis_root = build_info.images
 
+        anno_path = [anno_path] if isinstance(anno_path, str) else anno_path
+        vis_root = [vis_root] if isinstance(vis_root, str) else vis_root
+
         datasets = dict()
 
         # create datasets
