@@ -43,6 +43,19 @@ class Im2LatexDataset(BaseDataset):
         image = image.convert("RGB")
         return image
 
+    def init_reader(self):
+        if not isinstance(self.vis_root, str):
+            vis_root = self.vis_root[0]
+        else:
+            vis_root = self.vis_root
+        if vis_root.startswith('cluster'):
+            from petrel_client.client import Client
+            client = Client("~/petreloss.conf")
+            reader = {'type': 'PetrelReader', 'body': client.get}
+        else:
+            reader = {'type': 'LocalReader', 'body': Image.open}
+        return reader
+
     def collater(self, samples):
         image_list, question_list, id_list = [], [], []
 
