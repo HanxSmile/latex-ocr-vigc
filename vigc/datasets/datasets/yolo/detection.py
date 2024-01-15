@@ -11,8 +11,18 @@ from vigc.common.dist_utils import is_main_process
 class YoloDetection(BaseDataset):
     IMG_FORMATS = "bmp", "dng", "jpeg", "jpg", "mpo", "png", "tif", "tiff", "webp", "pfm"  # image suffixes
 
-    def __init__(self, vis_processor, media_root, anno_path, task, kpt_shape=None, class_names=None,
-                 include_classes=None, single_class=False, cache_labels=True):
+    def __init__(
+            self,
+            vis_processor,
+            media_root,
+            anno_path,
+            task,
+            kpt_shape=(0, 0),
+            class_names=(),
+            include_classes=None,
+            single_class=False,
+            cache_labels=True
+    ):
         super().__init__(vis_processor, None, media_root, anno_path)
         self.use_segments = task in ("segment", "segmentation")
         self.use_keypoints = task == "pose"
@@ -20,6 +30,7 @@ class YoloDetection(BaseDataset):
         self.class_names = class_names
         self.num_cls = len(self.class_names)
         self.cache_labels = cache_labels
+        self.cache_path = osp.join(media_root, "labels.cache")
         self.include_classes = include_classes
         self.single_class = single_class
 
@@ -27,7 +38,7 @@ class YoloDetection(BaseDataset):
             assert kpt_shape is not None
             self.nkpt, self.ndim = kpt_shape
             assert self.nkpt > 0 and self.ndim in (2, 3)
-        self.cache_path = osp.join(media_root, "labels.cache")
+
         self.labels = self.get_labels()
         self.update_labels()
 
@@ -58,11 +69,7 @@ class YoloDetection(BaseDataset):
         nf = 1  # label found
         with open(lb_file) as f:
             lb = [x.split() for x in f.read().strip().splitlines() if len(x)]
-        if any(len(x) > 6 for x in lb) and (not self.use_keypoints):  # is segment
-            classes = np.array([x[0] for x in lb], dtype=np.float32)
-            segments = [np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in lb]  # (cls, xy1...)
-            lb = np.concatenate((classes.reshape(-1, 1), segments2boxes(segments)), 1)  # (cls, xywh)
-        lb = np.array(lb, dtype=np.float32)
+
         nl = len(lb)
 
         if nl == 0:
@@ -71,6 +78,12 @@ class YoloDetection(BaseDataset):
             if self.use_keypoints:
                 keypoints = np.zeros(0, self.nkpt, 3)
             return lb, segments, keypoints, nm, nf, ne, nc, msg
+
+        if any(len(_) > 6 for _ in lb) and (not self.use_keypoints):  # is segment
+            classes = np.array([x[0] for x in lb], dtype=np.float32)
+            segments = [np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in lb]  # (cls, xy1...)
+            lb = np.concatenate((classes.reshape(-1, 1), segments2boxes(segments)), 1)  # (cls, xywh)
+        lb = np.array(lb, dtype=np.float32)
 
         if self.use_keypoints:
             assert lb.shape[1] == (
@@ -82,9 +95,8 @@ class YoloDetection(BaseDataset):
         assert points.max() <= 1, f"non-normalized or out of bounds coordinates {points[points > 1]}"
         assert lb.min() >= 0, f"negative label values {lb[lb < 0]}"
         # All labels
-        max_cls = lb[:, 0].max()  # max label count
-        assert max_cls <= self.num_cls, (
-            f"Label class {int(max_cls)} exceeds dataset class count {self.num_cls}. "
+        assert lb[:, 0].max() < self.num_cls, (
+            f"Label class {int(lb[:, 0].max())} exceeds dataset class count {self.num_cls}. "
             f"Possible class labels are 0-{self.num_cls - 1}"
         )
 
